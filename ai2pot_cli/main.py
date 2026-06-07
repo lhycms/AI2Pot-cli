@@ -1,6 +1,7 @@
 """AI2Pot CLI -- Main entry point."""
 
 import sys
+from typing import (List, Optional, Tuple)
 
 from ai2pot_cli.menu import (
     show_banner,
@@ -32,13 +33,13 @@ MAIN_SECTIONS = [
     ]),
 ]
 
-FOOTER = [(0, "Quit")]
+MAIN_FOOTER: List[Tuple[int, str]] = [(0, "Quit")]
 
 
 def main():
     show_banner(version=VERSION)
     while True:
-        show_main_menu(MAIN_SECTIONS, FOOTER)
+        show_main_menu(MAIN_SECTIONS, MAIN_FOOTER)
         choice = get_choice()
 
         if choice == 0:

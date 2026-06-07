@@ -36,8 +36,7 @@ def _make_frame(title: str) -> str:
 
 def show_main_menu(
     sections: List[Tuple[str, List[Tuple[int, str]]]],
-    footer: List[Tuple[int, str]] = None,
-):
+    footer: List[Tuple[int, str]] = None):
     """Print the grouped main menu with category frames and a 2-column grid.
 
     Args:
@@ -64,7 +63,7 @@ def show_main_menu(
             print(f" {num:2d})  {label}")
         print()
 
-    print(" " + "-" * (LINE_WIDTH - 1))
+    print(" " + "-" * LINE_WIDTH)
     print()
 
 
