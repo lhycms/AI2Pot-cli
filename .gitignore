@@ -1,0 +1,7 @@
+ai2pot_cli.egg-info
+**/*__pycache__*
+**/*.pyc
+
+**/*.png
+**/*.traj
+**/*.log

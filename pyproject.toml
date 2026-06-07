@@ -1,3 +1,18 @@
 [build-system]
 requires = ["setuptools>=64.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai2pot-cli"
+version = "0.1.0"
+description = "Interactive CLI toolkit for AI2Pot machine learning potentials"
+requires-python = ">=3.9"
+
+[project.scripts]
+ai2pot-cli = "ai2pot_cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools.package-data]
+ai2pot_cli = ["templates/*.json"]
