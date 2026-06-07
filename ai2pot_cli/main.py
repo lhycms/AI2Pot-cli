@@ -1,12 +1,14 @@
 """AI2Pot CLI -- Main entry point."""
 
+import argparse
 import sys
-from typing import (List, Optional, Tuple)
+from typing import List, Tuple
 
 from ai2pot_cli.menu import (
     show_banner,
     show_main_menu,
-    get_choice)
+    get_choice,
+)
 
 VERSION: str = "0.1.0"
 
@@ -18,13 +20,13 @@ MAIN_SECTIONS = [
     ]),
     ("Potential Training Input", [
         (11, "MTP Training Input"),
-        (12, "NEP Training Input")
+        (12, "NEP Training Input"),
     ]),
     ("Postprocessing", [
         (21, "Evaluate Potential"),
         (22, "Plot E/F/V Parity"),
         (23, "Plot Learning Curve"),
-        (24, "Export Predictions")
+        (24, "Export Predictions"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -36,7 +38,8 @@ MAIN_SECTIONS = [
 MAIN_FOOTER: List[Tuple[int, str]] = [(0, "Quit")]
 
 
-def main():
+def _interactive_loop():
+    """Run the VASPKIT-style interactive menu loop."""
     show_banner(version=VERSION)
     while True:
         show_main_menu(MAIN_SECTIONS, MAIN_FOOTER)
@@ -45,28 +48,23 @@ def main():
         if choice == 0:
             print(" Bye.")
             sys.exit(0)
-
+        
+        ### Sections
         # --- Preprocessing ---
         elif choice == 1:
             print(" -> Convert Dataset (not yet implemented)\n")
         elif choice == 2:
-            print(" -> Split Dataset (not yet implemented)\n")
+            print(" -> MTP Active Learning (not yet implemented)\n")
         elif choice == 3:
-            print(" -> Prepare MTP Active Learning (not yet implemented)\n")
-        elif choice == 4:
-            print(" -> Prepare NEP Active Learning (not yet implemented)\n")
+            print(" -> NEP Active Learning (not yet implemented)\n")
 
         # --- Potential Training Input ---
         elif choice == 11:
-            print(" -> Train Linear MTP (not yet implemented)\n")
+            print(" -> MTP Training Input (not yet implemented)\n")
         elif choice == 12:
-            print(" -> Train Neural MTP (not yet implemented)\n")
-        elif choice == 13:
-            print(" -> Train NEP/GNEP (not yet implemented)\n")
-        elif choice == 14:
-            print(" -> Resume Training (not yet implemented)\n")
-        elif choice == 15:
-            print(" -> Generate Train Config (not yet implemented)\n")
+            from ai2pot_cli.menus.potential_train.nep_train_input import generate_nep_input
+            generate_nep_input()
+            sys.exit(0)
 
         # --- Postprocessing ---
         elif choice == 21:
@@ -77,8 +75,6 @@ def main():
             print(" -> Plot Learning Curve (not yet implemented)\n")
         elif choice == 24:
             print(" -> Export Predictions (not yet implemented)\n")
-        elif choice == 25:
-            print(" -> Analyze MD Trajectory (not yet implemented)\n")
 
         # --- MD Utilities ---
         elif choice == 91:
@@ -90,3 +86,33 @@ def main():
 
         else:
             print(f" Invalid option: {choice}\n")
+
+
+def main():
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
+        prog="ai2pot-cli",
+        description="Official Command Line Interface for AI2Pot",
+    )
+    parser.add_argument(
+        "--version", "-v",
+        action="version",
+        version=f"AI2Pot-cli {VERSION}",
+    )
+    subparsers = parser.add_subparsers(dest="command")
+
+    # --- train subcommand ---
+    train_parser = subparsers.add_parser("train", help="Run potential training")
+    train_parser.add_argument(
+        "--input", "-i",
+        required=True,
+        metavar="CONFIG.json",
+        help="Path to training config JSON (e.g. nep_train.json)",
+    )
+
+    args = parser.parse_args()
+
+    if args.command == "train":
+        from ai2pot_cli.train import run_train
+        run_train(args.input)
+    else:
+        _interactive_loop()

@@ -43,7 +43,7 @@ def show_main_menu(
         sections: List of (section_title, items) where items is List of (num, label).
         footer: Optional footer items displayed after sections, e.g. [(0, "Quit")].
     """
-    COL_WIDTH = 35
+    COL_WIDTH = 36
 
     for title, items in sections:
         print(_make_frame(title))
@@ -81,6 +81,29 @@ def show_menu(title: str, items: List[Tuple[str, str]]):
     print(f"  9)  Back")
     print(f"  0)  Quit")
     print(" " + "-" * (LINE_WIDTH - 1))
+    print()
+
+
+def show_generation_success(title: str, output_path: str, next_command: str):
+    """Print a standardised success banner after generating a config file.
+
+    Args:
+        title: e.g. \"NEP Training Input Generated Successfully\"
+        output_path: absolute path to the generated file.
+        next_command: the CLI command the user should run next.
+    """
+    sep = " " + "=" * (LINE_WIDTH - 2)
+    print(sep)
+    print("  ✓ " + title)
+    print(sep)
+    print()
+    print("  Output File:")
+    print(f"    {output_path}")
+    print()
+    print("  Next Command:")
+    print(f"    {next_command}")
+    print()
+    print(sep)
     print()
 
 

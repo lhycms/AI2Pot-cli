@@ -1,0 +1,52 @@
+{
+    "Trainer": {
+        "max_epochs": 200,
+        "accelerator": "cuda",
+        "devices": 1,
+        "limit_val_batches": 0,
+        "log_every_n_steps": 1,
+        "save_dir": "lightning_logs",
+        "seed": 42,
+        "num_threads": 16,
+        "enable_descriptor_norm": true,
+        "enable_energy_shift": false
+    },
+
+    "Model": {
+        "type_map": "auto",
+        "umax_num_neigh_atoms": 200,
+        "fit_virial": false,
+        "n_radial_basis": 5,
+        "n_angular_basis": 5,
+        "l_max": 4,
+        "chebyshev_size": 9,
+        "num_neurons": 30,
+        "rmax_radial": 6.0,
+        "rmax_angular": 4.0,
+        "zbl_rmax": 0.0,
+        "zbl_rmin": 0.0,
+        "lr_start": 0.001,
+        "lr_end": 1e-7,
+        "e_wgt_start": 1.0,
+        "e_wgt_end": 1.0,
+        "f_wgt_start": 2.0,
+        "f_wgt_end": 2.0,
+        "v_wgt_start": 0.0,
+        "v_wgt_end": 0.0,
+        "max_clip_norm": 10.0
+    },
+
+    "Dataset": {
+        "trainset_path": "./train.xyz",
+        "validset_path": "./train.xyz",
+        "testset_path": null,
+        "predict_path": null,
+        "batch_size": 1,
+        "rcut": 6.0,
+        "umax_num_neigh_atoms": 200,
+        "pbc_xyz": [true, true, true],
+        "sort": false,
+        "torch_float_dtype": "float32",
+        "has_virial": false
+    }
+}
