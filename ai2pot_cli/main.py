@@ -98,7 +98,7 @@ def main():
         action="version",
         version=f"AI2Pot-cli {VERSION}",
     )
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers: argparse._SubParsersAction = parser.add_subparsers(dest="command")
 
     # --- train subcommand ---
     train_parser = subparsers.add_parser("train", help="Run potential training")
@@ -106,11 +106,17 @@ def main():
         "--input", "-i",
         required=True,
         metavar="CONFIG.json",
-        help="Path to training config JSON (e.g. nep_train.json)",
+        help="Path to training config JSON (e.g. mtp_train.json or nep_train.json)",
     )
 
-    args = parser.parse_args()
+    # --- plot subcommand ---
+    test_parser = subparsers.add_parser("test", help="Evaluate trained potential")
 
+    # --- plot subcommand ---
+    plot_parser = subparsers.add_parser("plot", help="Generate plots")
+
+    # --- main ---
+    args = parser.parse_args()
     if args.command == "train":
         from ai2pot_cli.train import run_train
         run_train(args.input)
