@@ -105,8 +105,8 @@ def main():
     train_parser.add_argument(
         "--input", "-i",
         required=True,
-        metavar="CONFIG.json",
-        help="Path to training config JSON (e.g. mtp_train.json or nep_train.json)",
+        metavar="CONFIG.jsonc",
+        help="Path to training config (JSON or JSONC, e.g. nep_train.jsonc)",
     )
 
     # --- plot subcommand ---

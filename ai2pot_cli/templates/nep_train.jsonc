@@ -1,0 +1,127 @@
+{
+    "Trainer": {
+        // Maximum number of training epochs.
+        "max_epochs": 200,
+
+        // Training device: "cuda" or "cpu".
+        "accelerator": "cuda",
+
+        // Number of devices used by Lightning Trainer.
+        "devices": 1,
+
+        // Set to 0 to disable validation during training.
+        "limit_val_batches": 0,
+
+        // Logging frequency in training steps.
+        "log_every_n_steps": 1,
+
+        // Directory for Lightning CSV/TensorBoard logs.
+        "save_dir": "lightning_logs",
+
+        // Random seed for reproducibility.
+        "seed": 42,
+
+        // Number of CPU threads used by PyTorch.
+        "num_threads": 16,
+
+        // Whether to normalize NEP descriptors before training.
+        "enable_descriptor_norm": true,
+
+        // Whether to shift atomic reference energies before training.
+        "enable_energy_shift": false
+    },
+
+    "Model": {
+        // Element type map. Use "auto" to infer from the training extxyz file.
+        "type_map": "auto",
+
+        // Maximum number of neighboring atoms stored for each atom.
+        "umax_num_neigh_atoms": 200,
+
+        // Whether to fit virial/stress.
+        "fit_virial": false,
+
+        // Number of radial basis functions.
+        "n_radial_basis": 5,
+
+        // Number of angular basis functions.
+        "n_angular_basis": 5,
+
+        // Maximum angular momentum order.
+        "l_max": 4,
+
+        // Number of Chebyshev basis functions.
+        "chebyshev_size": 9,
+
+        // Number of neurons in the NEP fitting network.
+        "num_neurons": 30,
+
+        // Radial cutoff radius in Angstrom.
+        "rmax_radial": 6.0,
+
+        // Angular cutoff radius in Angstrom.
+        "rmax_angular": 4.0,
+
+        // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
+        "zbl_rmax": 0.0,
+
+        // Inner cutoff of ZBL correction. Set 0.0 to disable ZBL.
+        "zbl_rmin": 0.0,
+
+        // Initial learning rate.
+        "lr_start": 0.001,
+
+        // Final learning rate.
+        "lr_end": 1e-7,
+
+        // Initial and final energy loss weights.
+        "e_wgt_start": 1.0,
+        "e_wgt_end": 1.0,
+
+        // Initial and final force loss weights.
+        "f_wgt_start": 2.0,
+        "f_wgt_end": 2.0,
+
+        // Initial and final virial loss weights.
+        "v_wgt_start": 0.0,
+        "v_wgt_end": 0.0,
+
+        // Maximum gradient clipping norm.
+        "max_clip_norm": 10.0
+    },
+
+    "Dataset": {
+        // Path to training dataset in extxyz format.
+        "trainset_path": "./train.xyz",
+
+        // Path to validation dataset. Cannot be null.
+        "validset_path": "./train.xyz",
+
+        // Path to test dataset.
+        "testset_path": null,
+
+        // Path to prediction dataset.
+        "predict_path": null,
+
+        // Batch size for Lightning DataModule.
+        "batch_size": 1,
+
+        // Neighbor-list cutoff radius. Usually equal to rmax_radial.
+        "rcut": 6.0,
+
+        // Maximum number of neighboring atoms stored for each atom.
+        "umax_num_neigh_atoms": 200,
+
+        // Periodic boundary conditions along x, y, z.
+        "pbc_xyz": [true, true, true],
+
+        // Whether to sort atoms before constructing dataset.
+        "sort": false,
+
+        // Floating-point precision: "float32" or "float64".
+        "torch_float_dtype": "float32",
+
+        // Whether the extxyz file contains virial/stress labels.
+        "has_virial": false
+    }
+}

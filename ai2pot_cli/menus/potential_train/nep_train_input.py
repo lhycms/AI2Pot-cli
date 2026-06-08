@@ -1,4 +1,4 @@
-"""Generate nep_train.json from the built-in template."""
+"""Generate nep_train.jsonc from the built-in template."""
 
 import os
 import shutil
@@ -6,12 +6,12 @@ import shutil
 from ai2pot_cli.menu import show_generation_success
 
 _TEMPLATE_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "templates", "nep_train.json"
+    os.path.dirname(__file__), "..", "..", "templates", "nep_train.jsonc"
 )
 
 
-def generate_nep_input(output_path: str = "nep_train.json"):
-    """Copy the NEP training template to *output_path*."""
+def generate_nep_input(output_path: str = "nep_train.jsonc"):
+    """Copy the NEP training template (with comments) to *output_path*."""
     shutil.copy(_TEMPLATE_PATH, output_path)
     abs_path = os.path.abspath(output_path)
     show_generation_success(

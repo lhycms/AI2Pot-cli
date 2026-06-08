@@ -7,6 +7,9 @@ name = "ai2pot-cli"
 version = "0.1.0"
 description = "Interactive CLI toolkit for AI2Pot machine learning potentials"
 requires-python = ">=3.9"
+dependencies = [
+  "json5==0.14.0",
+]
 
 [project.scripts]
 ai2pot-cli = "ai2pot_cli.main:main"
@@ -15,4 +18,4 @@ ai2pot-cli = "ai2pot_cli.main:main"
 where = ["."]
 
 [tool.setuptools.package-data]
-ai2pot_cli = ["templates/*.json"]
+ai2pot_cli = ["templates/*.json", "templates/*.jsonc"]

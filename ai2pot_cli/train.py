@@ -1,6 +1,6 @@
-"""NEP training module -- reads a JSON config and runs training."""
+"""NEP training module -- reads a JSON/JSONC config and runs training."""
 
-import json
+import json5
 import os
 from typing import Any, Dict, List
 
@@ -32,9 +32,14 @@ def _resolve_type_map(type_map_cfg, trainset_path: str) -> List[int]:
     raise ValueError(f"type_map must be 'auto' or a list of ints, got: {type_map_cfg}")
 
 
+def _load_config(path: str) -> Dict[str, Any]:
+    """Load a JSON/JSONC config file (supports // and /* */ comments)."""
+    with open(path, "r") as f:
+        return json5.load(f)
+
+
 def run_train(config_path: str) -> None:
-    with open(config_path, "r") as f:
-        config = json.load(f)
+    config = _load_config(config_path)
 
     trainer_cfg: Dict[str, Any] = config["Trainer"]
     model_cfg: Dict[str, Any] = config["Model"]
