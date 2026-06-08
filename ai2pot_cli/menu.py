@@ -56,15 +56,10 @@ def show_main_menu(
                 print(f"{left:<{COL_WIDTH}}{right}")
             else:
                 print(left)
-        print()
 
     if footer:
         for num, label in footer:
             print(f" {num:2d})  {label}")
-        print()
-
-    print(" " + "-" * LINE_WIDTH)
-    print()
 
 
 def show_menu(title: str, items: List[Tuple[str, str]]):
