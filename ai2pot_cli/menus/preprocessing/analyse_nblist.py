@@ -3,7 +3,7 @@
 import numpy as np
 
 from ase.io import read as ase_read
-from ai2pot.nblist import Nblist
+from ai2pot.core.nblist import Nblist
 
 
 def run_analyse(extxyz_path: str, rcut: float, max_neigh_buf: int = 500):
