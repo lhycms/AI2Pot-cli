@@ -31,7 +31,8 @@ def analyse_dataset(extxyz_path: str,
     all_pair_dists: List[np.ndarray] = []
     all_nn_dists: List[np.ndarray] = []  # per-atom nearest-neighbour distance
 
-    for atoms in tqdm(frames, desc="Analyzing frames", ncols=80):
+    print(f"\n Analysing {n_frames} frame(s) with rcut = {rcut:.2f} A ...\n")
+    for atoms in tqdm(frames, desc=" Progress", ncols=80, bar_format="{desc}: {percentage:3.0f}% |{bar}| {n_fmt}/{total_fmt} [{elapsed}]"):
         species_set.update(atoms.get_atomic_numbers())
         total_atoms += len(atoms)
 
