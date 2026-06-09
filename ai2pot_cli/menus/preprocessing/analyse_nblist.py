@@ -35,16 +35,13 @@ def run_analyse(extxyz_path: str, rcut: float, max_neigh_buf: int = 500):
         all_numneigh.append(numneigh)
 
         inum = nbl.inum
-        # ---- extract valid pair distances (exclude padding zeros) ----
-        n_flat = inum * max_neigh_buf
-        atom_idx = np.arange(n_flat) // max_neigh_buf
-        offset = np.arange(n_flat) % max_neigh_buf
-        mask = offset < numneigh[atom_idx]
-        all_pair_dists.append(nbl.distances[mask])
+        # distances is (inum, max_neigh_buf) with zero-padding for unused slots
+        # build 2D mask to extract only valid entries
+        nn_mask = np.arange(max_neigh_buf)[None, :] < numneigh[:, None]
+        all_pair_dists.append(nbl.distances[nn_mask])
 
         # ---- per-atom nearest-neighbour distance ----
-        dists_2d = nbl.distances.reshape(inum, max_neigh_buf)
-        nn_mask = np.arange(max_neigh_buf)[None, :] < numneigh[:, None]
+        dists_2d = nbl.distances
         dists_masked = np.where(nn_mask, dists_2d, np.inf)
         nn_d = np.min(dists_masked, axis=1)
         nn_d = nn_d[np.isfinite(nn_d)]
