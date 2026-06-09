@@ -57,12 +57,10 @@ def run_analyse(extxyz_path: str, rcut: float, max_neigh_buf: int = 500):
     mean_nn = float(np.mean(all_numneigh))
     median_nn = float(np.median(all_numneigh))
 
-    min_dist = float(np.min(all_pair_dists))
+    min_pair_dist = float(np.min(all_pair_dists))
     min_nn_dist = float(np.min(all_nn_dists))
     mean_nn_dist = float(np.mean(all_nn_dists))
-    pcts = [1, 5, 10, 25, 50, 75, 90, 95, 99]
-    dist_pct = np.percentile(all_pair_dists, pcts)
-    nn_pct = np.percentile(all_nn_dists, pcts)
+    p10_pair_dist = float(np.percentile(all_pair_dists, 10))
 
     # ---- Print report ----
     sep = " " + "=" * 62
@@ -83,30 +81,24 @@ def run_analyse(extxyz_path: str, rcut: float, max_neigh_buf: int = 500):
     print(f"  Mean neighbours:         {mean_nn:.1f}")
     print(f"  Median neighbours:       {median_nn:.1f}")
     print()
-    print(f"  --- Pair-distance Distribution (all pairs within rcut) ---")
-    print(f"  Minimum:                 {min_dist:.4f} A")
-    for p, v in zip(pcts, dist_pct):
-        print(f"  P{p:02d}:                     {v:.4f} A")
-    print()
-    print(f"  --- Nearest-neighbour Distance (per atom) ---")
-    print(f"  Minimum:                 {min_nn_dist:.4f} A")
-    print(f"  Mean:                    {mean_nn_dist:.4f} A")
-    for p, v in zip(pcts, nn_pct):
-        print(f"  P{p:02d}:                     {v:.4f} A")
+    print(f"  --- Distance Analysis ---")
+    print(f"  Min pair distance:       {min_pair_dist:.4f} A")
+    print(f"  P10 pair distance:       {p10_pair_dist:.4f} A")
+    print(f"  Min nearest-neighbour:   {min_nn_dist:.4f} A")
+    print(f"  Mean nearest-neighbour:  {mean_nn_dist:.4f} A")
     print()
     print(f"  --- Recommendations ---")
-    suggested_umax = int(max_nn * 1.1) + 1
+    suggested_umax = int(max_nn * 1.3) + 1
     print(f"  -> umax_num_neigh_atoms >= {suggested_umax}"
-          f"  (max observed: {max_nn} + 10% margin)")
+          f"  (max observed: {max_nn} + 30% margin)")
 
-    if min_dist < 1.0:
-        p10 = dist_pct[pcts.index(10)]
-        print(f"  -> WARNING: Min pair distance {min_dist:.3f} A < 1.0 A.")
+    if min_pair_dist < 2.0:
+        print(f"  -> WARNING: Min pair distance {min_pair_dist:.3f} A < 2.0 A.")
         print(f"     ZBL potential is recommended for short-range repulsion.")
-        print(f"     Suggested zbl_rmax ~ {p10:.2f} A  (P10 of pair distances)")
-        print(f"     Suggested zbl_rmin ~ {min_dist:.2f} A  (minimum pair distance)")
+        print(f"     Suggested zbl_rmax ~ {p10_pair_dist:.2f} A  (P10 of pair distances)")
+        print(f"     Suggested zbl_rmin ~ {min_pair_dist:.2f} A  (minimum pair distance)")
     else:
-        print(f"  -> Min distance {min_dist:.3f} A >= 1.0 A. ZBL may not be needed.")
+        print(f"  -> Min distance {min_pair_dist:.3f} A >= 2.0 A. ZBL may not be needed.")
 
     if max_nn >= max_neigh_buf:
         print(f"  -> WARNING: Max neighbours ({max_nn}) hit the analysis buffer"
