@@ -1,53 +1,56 @@
 """Dataset analysis -- neighbour and pair-distance statistics for NEP setup."""
 
-import numpy as np
+from typing import List
 
+import numpy as np
+from ase import Atoms
 from ase.io import read as ase_read
+
 from ai2pot.core.nblist import Nblist
 
 
-def run_analyse(extxyz_path: str, rcut: float, max_neigh_buf: int = 500):
+def analyse_dataset(extxyz_path: str,
+                        rcut: float,
+                        umax_num_neigh_atoms: int = 1200):
     """Analyse an extxyz dataset and report neighbour / distance statistics.
 
     Args:
         extxyz_path: Path to the extxyz file.
         rcut: Cutoff radius for the neighbour list (Angstrom).
-        max_neigh_buf: Internal buffer size for max neighbours during analysis.
+        umax_num_neigh_atoms: Internal buffer size for max neighbours during analysis.
     """
-    frames = ase_read(extxyz_path, index=":")
+    frames: List[Atoms] = ase_read(extxyz_path, index=":")
     if not isinstance(frames, list):
         frames = [frames]
 
-    n_frames = len(frames)
-
-    all_numneigh = []
-    all_pair_dists = []
-    all_nn_dists = []  # per-atom nearest-neighbour distance
+    n_frames: int = len(frames)
     species_set = set()
     total_atoms = 0
+    all_numneigh: List[np.ndarray] = []
+    all_pair_dists: List[np.ndarray] = []
+    all_nn_dists: List[np.ndarray] = []  # per-atom nearest-neighbour distance
 
     for atoms in frames:
         species_set.update(atoms.get_atomic_numbers())
         total_atoms += len(atoms)
 
-        nbl = Nblist.from_ase(atoms, rcut=rcut, umax_num_neigh_atoms=max_neigh_buf)
-        numneigh = nbl.numneigh  # (inum,)
+        nblist: Nblist = Nblist.from_ase(atoms, rcut=rcut, umax_num_neigh_atoms=umax_num_neigh_atoms)
+        numneigh: np.ndarray = nblist.numneigh  # (inum,)
         all_numneigh.append(numneigh)
 
-        inum = nbl.inum
-        # distances is (inum, max_neigh_buf) with zero-padding for unused slots
+        # distances is (inum, umax_num_neigh_atoms) with zero-padding for unused slots
         # build 2D mask to extract only valid entries
-        nn_mask = np.arange(max_neigh_buf)[None, :] < numneigh[:, None]
-        all_pair_dists.append(nbl.distances[nn_mask])
+        nn_mask = np.arange(umax_num_neigh_atoms)[None, :] < numneigh[:, None]
+        all_pair_dists.append(nblist.distances[nn_mask])
 
         # ---- per-atom nearest-neighbour distance ----
-        dists_2d = nbl.distances
-        dists_masked = np.where(nn_mask, dists_2d, np.inf)
-        nn_d = np.min(dists_masked, axis=1)
-        nn_d = nn_d[np.isfinite(nn_d)]
+        dists_2d: np.ndarray = nblist.distances
+        dists_masked: np.ndarray = np.where(nn_mask, dists_2d, np.inf)
+        nn_d: np.ndarray = np.min(dists_masked, axis=1) # 沿着列方向求最小值
+        nn_d = nn_d[np.isfinite(nn_d)]  # 删除没邻居的中心原子
         all_nn_dists.append(nn_d)
 
-    all_numneigh = np.concatenate(all_numneigh)
+    all_numneigh: np.ndarray = np.concatenate(all_numneigh)
     all_pair_dists = np.concatenate(all_pair_dists)
     all_nn_dists = np.concatenate(all_nn_dists)
 
@@ -67,42 +70,33 @@ def run_analyse(extxyz_path: str, rcut: float, max_neigh_buf: int = 500):
 
     print()
     print(sep)
-    print("  Dataset Analysis Report")
+    print("  Dataset Analysis")
     print(sep)
-    print(f"  Input file:              {extxyz_path}")
-    print(f"  Cutoff radius:           {rcut:.2f} A")
-    print(f"  Number of frames:        {n_frames}")
-    print(f"  Number of species:       {len(species_set)}  (Z = {sorted(species_set)})")
-    print(f"  Total atoms:             {total_atoms}")
+    print(f"  File              : {extxyz_path}")
+    print(f"  Frames / atoms    : {n_frames} / {total_atoms}")
+    print(f"  Species           : {len(species_set)}  (Z = {sorted(species_set)})")
+    print(f"  Cutoff            : {rcut:.2f} A")
     print()
-    print(f"  --- Neighbour Statistics  (rcut = {rcut:.1f} A) ---")
-    print(f"  Max neighbours:          {max_nn}")
-    print(f"  Min neighbours:          {min_nn}")
-    print(f"  Mean neighbours:         {mean_nn:.1f}")
-    print(f"  Median neighbours:       {median_nn:.1f}")
+    print(f"  Neighbours                  : min {min_nn} | mean {mean_nn:.1f} | "
+        f"median {median_nn:.1f} | max {max_nn}")
+    print(f"  Interatomic Distance        : min {min_pair_dist:.4f} A | "
+        f"p10 {p10_pair_dist:.4f} A")
+    print(f"  Nearest-neighbour distance  : min {min_nn_dist:.4f} A | "
+        f"mean {mean_nn_dist:.4f} A")
     print()
-    print(f"  --- Distance Analysis ---")
-    print(f"  Min pair distance:       {min_pair_dist:.4f} A")
-    print(f"  P10 pair distance:       {p10_pair_dist:.4f} A")
-    print(f"  Min nearest-neighbour:   {min_nn_dist:.4f} A")
-    print(f"  Mean nearest-neighbour:  {mean_nn_dist:.4f} A")
-    print()
-    print(f"  --- Recommendations ---")
+    print("  Recommendation")
     suggested_umax = int(max_nn * 1.3) + 1
-    print(f"  -> umax_num_neigh_atoms >= {suggested_umax}"
-          f"  (max observed: {max_nn} + 30% margin)")
+    print(f"  - umax_num_neigh_atoms >= {suggested_umax} "
+        f"(max {max_nn} + 30%)")
 
     if min_pair_dist < 2.0:
-        print(f"  -> WARNING: Min pair distance {min_pair_dist:.3f} A < 2.0 A.")
-        print(f"     ZBL potential is recommended for short-range repulsion.")
-        print(f"     Suggested zbl_rmax ~ {p10_pair_dist:.2f} A  (P10 of pair distances)")
-        print(f"     Suggested zbl_rmin ~ {min_pair_dist:.2f} A  (minimum pair distance)")
+        print("  - WARNING: short pair distance detected; consider enabling ZBL.")
     else:
-        print(f"  -> Min distance {min_pair_dist:.3f} A >= 2.0 A. ZBL may not be needed.")
+        print("  - ZBL is probably not necessary based on the minimum distance.")
 
-    if max_nn >= max_neigh_buf:
-        print(f"  -> WARNING: Max neighbours ({max_nn}) hit the analysis buffer"
-              f" ({max_neigh_buf}).")
-        print(f"     Re-run with a larger buffer for accurate statistics.")
+    if max_nn >= umax_num_neigh_atoms:
+        print(f"  - WARNING: neighbour buffer was reached "
+            f"({max_nn}/{umax_num_neigh_atoms}); rerun with a larger buffer.")
+
     print(sep)
     print()

@@ -61,8 +61,8 @@ def _interactive_loop():
                 continue
             rcut_str = input(" Cutoff radius (A) [default: 6.0]: ").strip()
             rcut = float(rcut_str) if rcut_str else 6.0
-            from ai2pot_cli.menus.preprocessing.analyse_nblist import run_analyse
-            run_analyse(extxyz_path, rcut)
+            from ai2pot_cli.menus.preprocessing.analyse_nblist import analyse_dataset
+            analyse_dataset(extxyz_path, rcut)
             sys.exit(0)
         elif choice == 3:
             print(" -> MTP Active Learning (not yet implemented)\n")
