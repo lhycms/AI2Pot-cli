@@ -31,6 +31,9 @@ def analyse_dataset(extxyz_path: str,
     all_numneigh: List[np.ndarray] = []
     all_pair_dists: List[np.ndarray] = []
     all_nn_dists: List[np.ndarray] = []  # per-atom nearest-neighbour distance
+    energies: List[float] = []
+    forces: List[np.ndarray] = []
+    virials: List[np.ndarray] = []
 
     print(f"\n Analysing {n_frames} frame(s) with rcut = {rcut:.2f} A ...\n")
     for atoms in tqdm(frames, desc=" Progress", ncols=80, bar_format="{desc}: {percentage:3.0f}% |{bar}| {n_fmt}/{total_fmt} [{elapsed}]"):
@@ -53,9 +56,27 @@ def analyse_dataset(extxyz_path: str,
         nn_d = nn_d[np.isfinite(nn_d)]  # 删除没邻居的中心原子
         all_nn_dists.append(nn_d)
 
+        # energy, force, virial
+        energies.append(atoms.get_potential_energy())
+        forces.append(atoms.get_forces())
+        try:
+            # virial: np.ndarray = -stress * atoms.get_volume()
+            virial: np.ndarray = atoms.info["virial"]
+            virials.append(virial)
+        except:
+            pass
+
+
     all_numneigh: np.ndarray = np.concatenate(all_numneigh)
     all_pair_dists = np.concatenate(all_pair_dists)
     all_nn_dists = np.concatenate(all_nn_dists)
+    forces = np.concatenate(forces).reshape(-1)
+    try:
+        virials = np.concatenate(virials).reshape(-1)
+    except:
+        pass
+    print(forces)
+    print(virials)
 
     # ---- Compute statistics ----
     max_nn = int(np.max(all_numneigh))
@@ -67,6 +88,23 @@ def analyse_dataset(extxyz_path: str,
     min_nn_dist = float(np.min(all_nn_dists))
     mean_nn_dist = float(np.mean(all_nn_dists))
     p10_pair_dist = float(np.percentile(all_pair_dists, 10))
+
+    natoms_per_frame = np.asarray([len(atoms) for atoms in frames], dtype=float)
+
+    energies = np.asarray(energies, dtype=float)
+    energies_per_atom = energies / natoms_per_frame
+
+    energy_mean = float(np.mean(energies_per_atom))
+    energy_std = float(np.std(energies_per_atom))
+    energy_min = float(np.min(energies_per_atom))
+    energy_max = float(np.max(energies_per_atom))
+
+    force_mean = float(np.mean(forces))
+    force_std = float(np.std(forces))
+    force_max = float(np.max(forces))
+    force_min = float(np.min(forces))
+
+    has_virial = len(virials) > 0
 
     # ---- Print report ----
     sep = " " + "=" * 62
@@ -92,6 +130,31 @@ def analyse_dataset(extxyz_path: str,
     print(f"  Nearest-neighbour distance  : min {min_nn_dist:.4f} A | "
         f"mean {mean_nn_dist:.4f} A")
     print()
+
+    print("  Label Statistics")
+    print(
+    f"  {'Energy per atom':<18}: "
+    f"mean {energy_mean:>10.6f} eV/atom | "
+    f"std {energy_std:>8.6f} | "
+    f"max {energy_max:>10.6f} | "
+    f"min {energy_min:>10.6f}"
+    )
+
+    print(
+        f"  {'Force magnitude':<18}: "
+        f"mean {force_mean:>10.4f} eV/A    | "
+        f"std {force_std:>8.4f} | "
+        f"max {force_max:>10.4f} | "
+        f"min {force_min:>10.4f}"
+    )
+
+    print(
+        f"  {'Virial':<18}: "
+        f"{'found' if has_virial else 'not found'}"
+    )
+    print()
+
+
     print("  Recommendation")
     suggested_umax = int(max_nn * 1.3) + 1
     print(f"  - umax_num_neigh_atoms >= {suggested_umax} "
