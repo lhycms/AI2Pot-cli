@@ -91,15 +91,12 @@ def show_generation_success(title: str, output_path: str, next_command: str):
     print(sep)
     print("  ✓ " + title)
     print(sep)
-    print()
     print("  Output File:")
     print(f"    {output_path}")
     print()
     print("  Next Command:")
     print(f"    {next_command}")
-    print()
     print(sep)
-    print()
 
 
 def get_choice():

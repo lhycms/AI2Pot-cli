@@ -15,8 +15,9 @@ VERSION: str = "0.1.0"
 MAIN_SECTIONS = [
     ("Preprocessing", [
         (1,  "Convert Dataset"),
-        (2,  "MTP Active Learning"),
-        (3,  "NEP Active Learning"),
+        (2,  "Analyse Dataset"),
+        (3,  "MTP Active Learning"),
+        (4,  "NEP Active Learning"),
     ]),
     ("Potential Training Input", [
         (11, "MTP Training Input"),

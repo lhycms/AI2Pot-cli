@@ -94,7 +94,8 @@
         // Path to training dataset in extxyz format.
         "trainset_path": "./train.xyz",
 
-        // Path to validation dataset. Cannot be null.
+        // Path to validation dataset.
+        // Cannot be null.
         "validset_path": "./train.xyz",
 
         // Path to test dataset.
