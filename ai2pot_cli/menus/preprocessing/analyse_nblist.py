@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 from ase import Atoms
 from ase.io import read as ase_read
+from tqdm import tqdm
 
 from ai2pot.core.nblist import Nblist
 
@@ -30,7 +31,7 @@ def analyse_dataset(extxyz_path: str,
     all_pair_dists: List[np.ndarray] = []
     all_nn_dists: List[np.ndarray] = []  # per-atom nearest-neighbour distance
 
-    for atoms in frames:
+    for atoms in tqdm(frames, desc="Analyzing frames", ncols=80):
         species_set.update(atoms.get_atomic_numbers())
         total_atoms += len(atoms)
 
