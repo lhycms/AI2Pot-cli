@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 from ase import Atoms
 from ase.io import read as ase_read
+from ase.data import chemical_symbols
 from tqdm import tqdm
 
 from ai2pot.core.nblist import Nblist
@@ -76,7 +77,12 @@ def analyse_dataset(extxyz_path: str,
     print(sep)
     print(f"  File              : {extxyz_path}")
     print(f"  Frames / atoms    : {n_frames} / {total_atoms}")
-    print(f"  Species           : {len(species_set)}  (Z = {sorted(species_set)})")
+    species_z = sorted(species_set)
+    species_symbols = [chemical_symbols[z] for z in species_z]
+    print(
+        f"  Species           : {len(species_set)} "
+        f"({', '.join(species_symbols)})"
+    )
     print(f"  Cutoff            : {rcut:.2f} A")
     print()
     print(f"  Neighbours                  : min {min_nn} | mean {mean_nn:.1f} | "
