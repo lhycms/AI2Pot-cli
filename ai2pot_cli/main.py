@@ -55,8 +55,17 @@ def _interactive_loop():
         elif choice == 1:
             print(" -> Convert Dataset (not yet implemented)\n")
         elif choice == 2:
-            print(" -> MTP Active Learning (not yet implemented)\n")
+            extxyz_path = input(" ExtXYZ file path: ").strip()
+            if not extxyz_path:
+                print(" No file path provided.\n")
+                continue
+            rcut_str = input(" Cutoff radius (A) [default: 6.0]: ").strip()
+            rcut = float(rcut_str) if rcut_str else 6.0
+            from ai2pot_cli.menus.preprocessing.analyse_nblist import run_analyse
+            run_analyse(extxyz_path, rcut)
         elif choice == 3:
+            print(" -> MTP Active Learning (not yet implemented)\n")
+        elif choice == 4:
             print(" -> NEP Active Learning (not yet implemented)\n")
 
         # --- Potential Training Input ---
