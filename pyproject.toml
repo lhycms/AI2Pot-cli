@@ -9,7 +9,7 @@ description = "Interactive CLI toolkit for AI2Pot machine learning potentials"
 requires-python = ">=3.9"
 dependencies = [
   "json5==0.14.0",
-  "ase=3.23.0"
+  "ase==3.23.0"
 ]
 
 [project.scripts]

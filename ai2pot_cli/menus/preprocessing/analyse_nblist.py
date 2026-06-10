@@ -75,8 +75,6 @@ def analyse_dataset(extxyz_path: str,
         virials = np.concatenate(virials).reshape(-1)
     except:
         pass
-    print(forces)
-    print(virials)
 
     # ---- Compute statistics ----
     max_nn = int(np.max(all_numneigh))
@@ -141,7 +139,7 @@ def analyse_dataset(extxyz_path: str,
     )
 
     print(
-        f"  {'Force magnitude':<18}: "
+        f"  {'Force component':<18}: "
         f"mean {force_mean:>10.4f} eV/A    | "
         f"std {force_std:>8.4f} | "
         f"max {force_max:>10.4f} | "
