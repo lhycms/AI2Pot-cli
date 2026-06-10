@@ -13,7 +13,7 @@ def _make_line(content: str) -> str:
 
 def show_banner(version: str):
     print(" +" + "-" * LINE_WIDTH_MINUS_2 + "+")
-    print(_make_line(content="AI2Pot-CLI Standard Edition"))
+    print(_make_line(content="AI2Pot-cli Standard Edition"))
     print(_make_line(content=f"Version {version:<12}"))
     print(_make_line(content=""))
     print(_make_line(content="Official Command Line Interface for AI2Pot"))
