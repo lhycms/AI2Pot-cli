@@ -87,16 +87,50 @@ def show_generation_success(title: str, output_path: str, next_command: str):
         output_path: absolute path to the generated file.
         next_command: the CLI command the user should run next.
     """
-    sep = " " + "=" * (LINE_WIDTH - 2)
-    print(sep)
-    print("  ✓ " + title)
-    print(sep)
-    print("  Output File:")
-    print(f"    {output_path}")
+    print_section(title)
+    print_kv("Output File", output_path)
     print()
-    print("  Next Command:")
-    print(f"    {next_command}")
-    print(sep)
+    print_kv("Next Command", next_command)
+    print_sep()
+    print()
+
+
+# ---- Unified output helpers ----
+
+SEP = " " + "-" * (LINE_WIDTH - 2)
+
+
+def print_section(title: str):
+    """Print a framed section header."""
+    print()
+    print(_make_frame(title))
+    print()
+
+
+def print_success(msg: str):
+    """Print a success / info line."""
+    print(f"  ✓  {msg}")
+
+
+def print_warning(msg: str):
+    """Print a warning line."""
+    print(f"  ⚠  {msg}")
+
+
+def print_error(msg: str):
+    """Print an error line."""
+    print(f"  ✗  {msg}")
+
+
+def print_kv(key: str, value: str, indent: int = 2):
+    """Print a key-value line with aligned colon."""
+    prefix = " " * indent
+    print(f"{prefix}{key:<18}: {value}")
+
+
+def print_sep():
+    """Print a horizontal separator line."""
+    print(SEP)
 
 
 def get_choice():
@@ -108,7 +142,8 @@ def get_choice():
                 continue
             return int(s)
         except ValueError:
-            print(" Please enter a valid number.")
+            print_warning("Please enter a valid number.")
         except EOFError:
-            print("\n Bye.")
+            print()
+            print_success("Bye.")
             raise SystemExit(0)

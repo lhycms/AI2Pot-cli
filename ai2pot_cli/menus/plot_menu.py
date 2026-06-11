@@ -1,6 +1,6 @@
 import sys
 
-from ai2pot_cli.menu import show_menu, get_choice
+from ai2pot_cli.menu import show_menu, get_choice, print_success, print_warning
 
 PLOT_ITEMS = [
     ("Parity Plot",       "Prediction vs. reference parity plot"),
@@ -14,7 +14,7 @@ def plot_menu():
         show_menu("Plotting Tools", PLOT_ITEMS)
         choice = get_choice()
         if choice == 0:
-            print(" Bye.")
+            print_success("Bye.")
             sys.exit(0)
         elif choice == 9:
             return
@@ -25,4 +25,4 @@ def plot_menu():
         elif choice == 3:
             print(" -> Generating energy landscape ...\n")
         else:
-            print(f" Invalid option: {choice}\n")
+            print_warning(f"Invalid option: {choice}")

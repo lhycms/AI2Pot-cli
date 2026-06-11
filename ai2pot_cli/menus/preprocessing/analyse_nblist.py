@@ -9,6 +9,7 @@ from ase.data import chemical_symbols
 from tqdm import tqdm
 
 from ai2pot.core.nblist import Nblist
+from ai2pot_cli.menu import print_section, print_success, print_warning, print_kv, print_sep
 
 
 def analyse_dataset(extxyz_path: str,
@@ -35,7 +36,12 @@ def analyse_dataset(extxyz_path: str,
     forces: List[np.ndarray] = []
     virials: List[np.ndarray] = []
 
-    print(f"\n Analysing {n_frames} frame(s) with rcut = {rcut:.2f} A ...\n")
+    print_section("Dataset Analysis")
+    print_kv("File", extxyz_path)
+    print_kv("Frames", str(n_frames))
+    print_kv("Cutoff", f"{rcut:.2f} A")
+    print()
+
     for atoms in tqdm(frames, desc=" Progress", ncols=80, bar_format="{desc}: {percentage:3.0f}% |{bar}| {n_fmt}/{total_fmt} [{elapsed}]"):
         species_set.update(atoms.get_atomic_numbers())
         total_atoms += len(atoms)
@@ -105,67 +111,34 @@ def analyse_dataset(extxyz_path: str,
     has_virial = len(virials) > 0
 
     # ---- Print report ----
-    sep = " " + "=" * 62
-
-    print()
-    print(sep)
-    print("  Dataset Analysis")
-    print(sep)
-    print(f"  File              : {extxyz_path}")
-    print(f"  Frames / atoms    : {n_frames} / {total_atoms}")
     species_z = sorted(species_set)
     species_symbols = [chemical_symbols[z] for z in species_z]
-    print(
-        f"  Species           : {len(species_set)} "
-        f"({', '.join(species_symbols)})"
-    )
-    print(f"  Cutoff            : {rcut:.2f} A")
+
+    print_section("Results")
+    print_kv("Frames / atoms", f"{n_frames} / {total_atoms}")
+    print_kv("Species", f"{len(species_set)} ({', '.join(species_symbols)})")
     print()
-    print(f"  Neighbours                  : min {min_nn} | mean {mean_nn:.1f} | "
-        f"median {median_nn:.1f} | max {max_nn}")
-    print(f"  Interatomic Distance        : min {min_pair_dist:.4f} A | "
-        f"p10 {p10_pair_dist:.4f} A")
-    print(f"  Nearest-neighbour distance  : min {min_nn_dist:.4f} A | "
-        f"mean {mean_nn_dist:.4f} A")
+    print_kv("Neighbours", f"min {min_nn} | mean {mean_nn:.1f} | median {median_nn:.1f} | max {max_nn}")
+    print_kv("Pair distance", f"min {min_pair_dist:.4f} A | p10 {p10_pair_dist:.4f} A")
+    print_kv("NN distance", f"min {min_nn_dist:.4f} A | mean {mean_nn_dist:.4f} A")
     print()
 
-    print("  Label Statistics")
-    print(
-    f"  {'Energy per atom':<18}: "
-    f"mean {energy_mean:>10.6f} eV/atom | "
-    f"std {energy_std:>8.6f} | "
-    f"max {energy_max:>10.6f} | "
-    f"min {energy_min:>10.6f}"
-    )
-
-    print(
-        f"  {'Force component':<18}: "
-        f"mean {force_mean:>10.4f} eV/A    | "
-        f"std {force_std:>8.4f} | "
-        f"max {force_max:>10.4f} | "
-        f"min {force_min:>10.4f}"
-    )
-
-    print(
-        f"  {'Virial':<18}: "
-        f"{'found' if has_virial else 'not found'}"
-    )
+    print_section("Label Statistics")
+    print_kv("Energy per atom", f"mean {energy_mean:>10.6f} eV/atom | std {energy_std:>8.6f} | max {energy_max:>10.6f} | min {energy_min:>10.6f}")
+    print_kv("Force component", f"mean {force_mean:>10.4f} eV/A    | std {force_std:>8.4f} | max {force_max:>10.4f} | min {force_min:>10.4f}")
+    print_kv("Virial", "found" if has_virial else "not found")
     print()
 
-
-    print("  Recommendation")
+    print_section("Recommendation")
     suggested_umax = int(max_nn * 1.3) + 1
-    print(f"  - umax_num_neigh_atoms >= {suggested_umax} "
-        f"(max {max_nn} + 30%)")
+    print(f"  - umax_num_neigh_atoms >= {suggested_umax} (max {max_nn} + 30%)")
 
     if min_pair_dist < 2.0:
-        print("  - WARNING: short pair distance detected; consider enabling ZBL.")
+        print_warning("short pair distance detected; consider enabling ZBL.")
     else:
-        print("  - ZBL is probably not necessary based on the minimum distance.")
+        print(f"  - ZBL is probably not necessary based on the minimum distance.")
 
     if max_nn >= umax_num_neigh_atoms:
-        print(f"  - WARNING: neighbour buffer was reached "
-            f"({max_nn}/{umax_num_neigh_atoms}); rerun with a larger buffer.")
+        print_warning(f"neighbour buffer was reached ({max_nn}/{umax_num_neigh_atoms}); rerun with a larger buffer.")
 
-    print(sep)
     print()

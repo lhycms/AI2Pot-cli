@@ -1,6 +1,6 @@
 import sys
 
-from ai2pot_cli.menu import show_menu, get_choice
+from ai2pot_cli.menu import show_menu, get_choice, print_success, print_warning
 
 TRAIN_ITEMS = [
     ("Linear MTP",  "Train a linear Moment Tensor Potential"),
@@ -14,7 +14,7 @@ def train_menu():
         show_menu("Train Potential", TRAIN_ITEMS)
         choice = get_choice()
         if choice == 0:
-            print(" Bye.")
+            print_success("Bye.")
             sys.exit(0)
         elif choice == 9:
             return
@@ -25,4 +25,4 @@ def train_menu():
         elif choice == 3:
             print(" -> Starting NEP training ...\n")
         else:
-            print(f" Invalid option: {choice}\n")
+            print_warning(f"Invalid option: {choice}")

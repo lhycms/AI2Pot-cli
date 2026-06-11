@@ -27,7 +27,7 @@
         // Whether to show tqdm progress bar during training.
         "enable_progress_bar": false,
 
-        // Whether to normalize NEP descriptors before training.
+        // Whether to normalize MTP descriptors before training.
         "enable_descriptor_norm": true,
 
         // Whether to shift atomic reference energies before training.
@@ -44,26 +44,17 @@
         // Whether to fit virial/stress.
         "fit_virial": false,
 
-        // Number of radial basis functions.
-        "n_radial_basis": 4,
-
-        // Number of angular basis functions.
-        "n_angular_basis": 4,
-
-        // Maximum angular momentum order.
-        "l_max": 4,
+        // MTP level (number of radial basis functions).
+        "mtp_level": 18,
 
         // Number of Chebyshev basis functions.
         "chebyshev_size": 8,
 
-        // Number of neurons in the NEP fitting network.
-        "num_neurons": 30,
-
         // Radial cutoff radius in Angstrom.
-        "rmax_radial": 6.0,
+        "rmax": 5.0,
 
-        // Angular cutoff radius in Angstrom.
-        "rmax_angular": 4.0,
+        // Inner cutoff radius in Angstrom.
+        "rmin": 0.0,
 
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
         "zbl_rmax": 0.0,
@@ -72,10 +63,10 @@
         "zbl_rmin": 0.0,
 
         // Initial learning rate.
-        "lr_start": 0.001,
+        "lr_start": 0.01,
 
         // Final learning rate.
-        "lr_end": 1e-6,
+        "lr_end": 0.0001,
 
         // Initial and final energy loss weights.
         "e_wgt_start": 0.1,
@@ -110,8 +101,8 @@
         // Batch size for Lightning DataModule.
         "batch_size": 1,
 
-        // Neighbor-list cutoff radius. Usually equal to rmax_radial.
-        "rcut": 6.0,
+        // Neighbor-list cutoff radius. Usually equal to rmax.
+        "rcut": 5.0,
 
         // Maximum number of neighboring atoms stored for each atom.
         "umax_num_neigh_atoms": 200,

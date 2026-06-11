@@ -1,4 +1,4 @@
-"""NEP training module -- reads a JSON/JSONC config and runs training."""
+"""Training module -- reads a JSON/JSONC config and runs NEP or MTP training."""
 
 import json5
 import os
@@ -9,8 +9,9 @@ import lightning as L
 from lightning.pytorch.loggers import CSVLogger
 
 from ai2pot.data import ExtxyzDataset, ExtxyzDataModule
-from ai2pot.models.potential_train import LitNep
+from ai2pot.models.potential_train import LitNep, LitLinearMtp
 from ai2pot.models.nep.nep_train_utils import NepDescriptorNormCallback
+from ai2pot.models.mtp.linear_mtp_train_utils import LinearMtpDescriptorNormCallback
 from ai2pot.models.potential_train_utils import EnergyShiftCallback
 
 
@@ -47,8 +48,8 @@ def run_train(config_path: str) -> None:
 
     # --- Global settings ---
     seed: int = trainer_cfg.get("seed", 42)
-    num_threads: int = trainer_cfg.get("num_threads", 16)
-    torch.manual_seed(seed)
+    num_threads: int = int(os.environ.get("SLURM_CPUS_PER_TASK", trainer_cfg.get("num_threads", 16)))
+    L.seed_everything(seed, workers=True)
     torch.set_num_threads(num_threads)
 
     dtype: torch.dtype = _get_dtype(dataset_cfg.get("torch_float_dtype", "float32"))
@@ -57,19 +58,16 @@ def run_train(config_path: str) -> None:
     trainset_path: str = dataset_cfg["trainset_path"]
     type_map: List[int] = _resolve_type_map(model_cfg["type_map"], trainset_path)
 
-    # --- Build Model ---
+    # --- Detect model type ---
+    is_mtp: bool = "mtp_level" in model_cfg
     fit_virial: bool = model_cfg.get("fit_virial", dataset_cfg.get("has_virial", False))
-    lit_nep = LitNep(
+
+    # --- Build Model ---
+    common_kwargs = dict(
         type_map=type_map,
         umax_num_neigh_atoms=model_cfg["umax_num_neigh_atoms"],
         fit_virial=fit_virial,
-        n_radial_basis=model_cfg["n_radial_basis"],
-        n_angular_basis=model_cfg["n_angular_basis"],
-        l_max=model_cfg["l_max"],
         chebyshev_size=model_cfg["chebyshev_size"],
-        num_neurons=model_cfg["num_neurons"],
-        rmax_radial=model_cfg["rmax_radial"],
-        rmax_angular=model_cfg["rmax_angular"],
         zbl_rmax=model_cfg.get("zbl_rmax", 0.0),
         zbl_rmin=model_cfg.get("zbl_rmin", 0.0),
         lr_start=model_cfg["lr_start"],
@@ -80,8 +78,26 @@ def run_train(config_path: str) -> None:
         f_wgt_end=model_cfg["f_wgt_end"],
         v_wgt_start=model_cfg["v_wgt_start"],
         v_wgt_end=model_cfg["v_wgt_end"],
-        max_clip_norm=model_cfg.get("max_clip_norm", 10),
-    ).to(dtype)
+        max_clip_norm=model_cfg.get("max_clip_norm", 10.0),
+    )
+
+    if is_mtp:
+        lit_model = LitLinearMtp(
+            mtp_level=model_cfg["mtp_level"],
+            rmax=model_cfg["rmax"],
+            rmin=model_cfg.get("rmin", 0.0),
+            **common_kwargs,
+        ).to(dtype)
+    else:
+        lit_model = LitNep(
+            n_radial_basis=model_cfg["n_radial_basis"],
+            n_angular_basis=model_cfg["n_angular_basis"],
+            l_max=model_cfg["l_max"],
+            num_neurons=model_cfg["num_neurons"],
+            rmax_radial=model_cfg["rmax_radial"],
+            rmax_angular=model_cfg["rmax_angular"],
+            **common_kwargs,
+        ).to(dtype)
 
     # --- Build DataModule ---
     datamodule = ExtxyzDataModule(
@@ -101,21 +117,25 @@ def run_train(config_path: str) -> None:
     # --- Build Callbacks ---
     callbacks = []
     if trainer_cfg.get("enable_descriptor_norm", True):
-        callbacks.append(NepDescriptorNormCallback())
+        if is_mtp:
+            callbacks.append(LinearMtpDescriptorNormCallback())
+        else:
+            callbacks.append(NepDescriptorNormCallback())
     if trainer_cfg.get("enable_energy_shift", False):
         callbacks.append(EnergyShiftCallback())
 
     # --- Build Trainer ---
-    csv_logger = CSVLogger(save_dir=trainer_cfg.get("save_dir", "lightning_logs"))
+    csv_logger = CSVLogger(save_dir=trainer_cfg.get("save_dir", "./"))
     trainer = L.Trainer(
         max_epochs=trainer_cfg["max_epochs"],
         accelerator=trainer_cfg.get("accelerator", "auto"),
         devices=trainer_cfg.get("devices", 1),
         limit_val_batches=trainer_cfg.get("limit_val_batches", 0),
-        log_every_n_steps=trainer_cfg.get("log_every_n_steps", 1),
+        log_every_n_steps=trainer_cfg.get("log_every_n_steps", 500),
+        enable_progress_bar=trainer_cfg.get("enable_progress_bar", False),
         logger=csv_logger,
         callbacks=callbacks,
     )
 
     # --- Run ---
-    trainer.fit(model=lit_nep, datamodule=datamodule)
+    trainer.fit(model=lit_model, datamodule=datamodule)
