@@ -95,12 +95,13 @@ def _interactive_loop():
             if not checkpoint_path:
                 print_warning("No checkpoint path provided.")
                 continue
-            testset_path = input(" Testset path (.xyz): ").strip()
-            if not testset_path:
-                print_warning("No testset path provided.")
+            trainset_path = input(" Trainset path (.xyz) [optional]: ").strip() or None
+            testset_path = input(" Testset path (.xyz) [optional]: ").strip() or None
+            if not trainset_path and not testset_path:
+                print_warning("At least one of trainset or testset must be provided.")
                 continue
             from ai2pot_cli.menus.postprocessing.plot_parity import plot_parity
-            plot_parity(checkpoint_path, testset_path)
+            plot_parity(checkpoint_path, trainset_path=trainset_path, testset_path=testset_path)
             sys.exit(0)
         elif choice == 22:
             print(" -> Plot Learning Curve (not yet implemented)\n")
