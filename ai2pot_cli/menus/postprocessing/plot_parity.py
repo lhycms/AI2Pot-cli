@@ -196,7 +196,6 @@ def plot_parity(
 
     # --- Compute parity for each dataset ---
     datasets: List[Dict] = []
-    npy_files: List[str] = []
 
     if trainset_path:
         print_success(f"Loading trainset: {trainset_path}")
@@ -205,17 +204,6 @@ def plot_parity(
         data["label"] = "Train"
         datasets.append(data)
         _save_npy(data, "train_", out_dir)
-        npy_files.extend([
-            os.path.join(out_dir, "train_energy_dft.npy"),
-            os.path.join(out_dir, "train_energy_pred.npy"),
-            os.path.join(out_dir, "train_force_dft.npy"),
-            os.path.join(out_dir, "train_force_pred.npy"),
-        ])
-        if "v_dft" in data:
-            npy_files.extend([
-                os.path.join(out_dir, "train_virial_dft.npy"),
-                os.path.join(out_dir, "train_virial_pred.npy"),
-            ])
 
     if testset_path:
         print_success(f"Loading testset: {testset_path}")
@@ -224,27 +212,13 @@ def plot_parity(
         data["label"] = "Test"
         datasets.append(data)
         _save_npy(data, "test_", out_dir)
-        npy_files.extend([
-            os.path.join(out_dir, "test_energy_dft.npy"),
-            os.path.join(out_dir, "test_energy_pred.npy"),
-            os.path.join(out_dir, "test_force_dft.npy"),
-            os.path.join(out_dir, "test_force_pred.npy"),
-        ])
-        if "v_dft" in data:
-            npy_files.extend([
-                os.path.join(out_dir, "test_virial_dft.npy"),
-                os.path.join(out_dir, "test_virial_pred.npy"),
-            ])
 
     # --- Plot ---
     _make_parity_plot(datasets, abs_output)
 
     # --- Print results ---
     print_section("Parity Plot Generated Successfully")
-    print_kv("Output Plot", abs_output)
-    print()
-    for f in npy_files:
-        print_kv("Output Data", f)
+    print_kv("Output Dir", out_dir)
     print()
     for ds in datasets:
         e_rmse = np.sqrt(np.mean((ds["e_ml"] - ds["e_dft"]) ** 2))
