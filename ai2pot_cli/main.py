@@ -83,7 +83,9 @@ def _interactive_loop():
 
         # --- Potential Training Input ---
         elif choice == 11:
-            print(" -> MTP Training Input (not yet implemented)\n")
+            from ai2pot_cli.menus.potential_train.mtp_train_input import generate_mtp_input
+            generate_mtp_input()
+            sys.exit(0)
         elif choice == 12:
             from ai2pot_cli.menus.potential_train.nep_train_input import generate_nep_input
             generate_nep_input()
