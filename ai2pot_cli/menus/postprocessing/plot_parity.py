@@ -182,9 +182,13 @@ def plot_parity(
         raise ValueError("At least one of trainset_path or testset_path must be provided.")
 
     if output_path is None:
-        output_path = os.path.join(os.getcwd(), "parity_plot.png")
+        out_dir = os.path.join(os.getcwd(), "parity_analysis")
+        os.makedirs(out_dir, exist_ok=True)
+        output_path = os.path.join(out_dir, "parity_plot.png")
+    else:
+        out_dir = os.path.dirname(os.path.abspath(output_path))
+        os.makedirs(out_dir, exist_ok=True)
     abs_output = os.path.abspath(output_path)
-    out_dir = os.path.dirname(abs_output)
 
     # --- Device ---
     device = _get_device()
