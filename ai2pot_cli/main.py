@@ -27,10 +27,8 @@ MAIN_SECTIONS = [
         (12, "NEP Training Input"),
     ]),
     ("Postprocessing", [
-        (21, "Evaluate Potential"),
-        (22, "Plot E/F/V Parity"),
-        (23, "Plot Learning Curve"),
-        (24, "Export Predictions"),
+        (21, "Plot E/F/V Parity"),
+        (22, "Plot Learning Curve"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -93,13 +91,19 @@ def _interactive_loop():
 
         # --- Postprocessing ---
         elif choice == 21:
-            print(" -> Evaluate Potential (not yet implemented)\n")
+            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
+            if not checkpoint_path:
+                print_warning("No checkpoint path provided.")
+                continue
+            testset_path = input(" Testset path (.xyz): ").strip()
+            if not testset_path:
+                print_warning("No testset path provided.")
+                continue
+            from ai2pot_cli.menus.postprocessing.plot_parity import plot_parity
+            plot_parity(checkpoint_path, testset_path)
+            sys.exit(0)
         elif choice == 22:
-            print(" -> Plot E/F/V Parity (not yet implemented)\n")
-        elif choice == 23:
             print(" -> Plot Learning Curve (not yet implemented)\n")
-        elif choice == 24:
-            print(" -> Export Predictions (not yet implemented)\n")
 
         # --- MD Utilities ---
         elif choice == 91:
