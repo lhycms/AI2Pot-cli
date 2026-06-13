@@ -34,6 +34,12 @@ METRIC_STYLES = {
 }
 SET_LINESTYLE = {"train": "-", "val": "--"}
 
+GRAD_STYLES = {
+    "avg_norm":       {"color": "#2166ac", "label": "Avg Norm",       "lw": 1.5},
+    "raw_norm":       {"color": "#d73027", "label": "Raw Norm",       "lw": 1.5},
+    "clip_threshold": {"color": "#4daf4a", "label": "Clip Threshold", "lw": 1.5},
+}
+
 
 def _read_csv(csv_path: str) -> List[Dict]:
     rows = []
@@ -156,6 +162,35 @@ def _make_lr_plot(rows: List[Dict], x_axis: str, out_dir: str):
     return True
 
 
+def _make_grad_plot(rows: List[Dict], x_axis: str, out_dir: str):
+    """Gradient avg_norm / raw_norm / clip_threshold on a single log-scale plot."""
+    fig, ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
+    any_line = False
+
+    for short, gstyle in GRAD_STYLES.items():
+        col = f"grad/{short}_{x_axis}"
+        x, y = _extract_series(rows, x_axis, col)
+        if len(x) == 0:
+            continue
+        ax.plot(x, y, color=gstyle["color"], lw=gstyle["lw"],
+                alpha=0.85, label=gstyle["label"])
+        any_line = True
+
+    if not any_line:
+        plt.close(fig)
+        return False
+
+    ax.set_xlabel(x_axis.capitalize())
+    ax.set_ylabel("Gradient Norm")
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    fig.savefig(os.path.join(out_dir, f"grad_curve_{x_axis}.png"))
+    plt.close(fig)
+    return True
+
+
 def plot_trainlog(csv_path: str, output_path: Optional[str] = None):
     if not os.path.exists(csv_path):
         print_error(f"File not found: {csv_path}")
@@ -182,6 +217,8 @@ def plot_trainlog(csv_path: str, output_path: Optional[str] = None):
         all_generated.append("weight")
     if _make_lr_plot(rows, "step", out_dir):
         all_generated.append("lr")
+    if _make_grad_plot(rows, "step", out_dir):
+        all_generated.append("grad")
 
     if not all_generated:
         print_warning("No valid metrics found in the CSV file.")
