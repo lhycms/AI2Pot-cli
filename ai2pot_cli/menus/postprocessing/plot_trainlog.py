@@ -92,6 +92,8 @@ def _make_rmse_plot(rows: List[Dict], x_axis: str, out_dir: str):
 
     ax.set_xlabel(x_axis.capitalize())
     ax.set_ylabel("RMSE")
+    if x_axis == "step":
+        ax.set_xscale("log")
     ax.set_yscale("log")
     ax.legend()
     ax.grid(True, alpha=0.3)
@@ -127,6 +129,8 @@ def _make_weight_plot(rows: List[Dict], x_axis: str, out_dir: str):
 
     ax.set_xlabel(x_axis.capitalize())
     ax.set_ylabel("Loss Weight")
+    if x_axis == "step":
+        ax.set_xscale("log")
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -146,6 +150,8 @@ def _make_lr_plot(rows: List[Dict], x_axis: str, out_dir: str):
     ax.plot(x, y, color="#333333", lw=1.5, alpha=0.85)
     ax.set_xlabel(x_axis.capitalize())
     ax.set_ylabel("Learning Rate")
+    if x_axis == "step":
+        ax.set_xscale("log")
     ax.set_yscale("log")
     ax.grid(True, alpha=0.3)
 
