@@ -15,24 +15,24 @@ import numpy as np
 
 from ai2pot_cli.menu import print_section, print_kv, print_sep, print_error, print_warning
 
-plt.rcParams.update(
-    {
-        "font.family": "serif",
-        "font.size": 11,
-        "axes.labelsize": 13,
-        "axes.titlesize": 14,
-        "legend.fontsize": 10,
-        "figure.dpi": 150,
-        "savefig.bbox": "tight",
-        "savefig.pad_inches": 0.05,
-    }
-)
+plt.rcParams.update({
+    "font.size": 14,
+    "axes.labelsize": 16,
+    "axes.titlesize": 16,
+    "xtick.labelsize": 13,
+    "ytick.labelsize": 13,
+    "legend.fontsize": 13,
+    "figure.dpi": 300,
+    "savefig.dpi": 300,
+    "savefig.bbox": "tight",
+})
 
-METRIC_LABELS = {"e": "Energy", "f": "Force", "v": "Virial"}
-SET_STYLES = {
-    "train": {"color": "#2166ac", "label": "Train", "lw": 1.2},
-    "val": {"color": "#d73027", "label": "Val", "lw": 1.2},
+METRIC_STYLES = {
+    "e": {"color": "#2166ac", "label": "Energy", "lw": 1.5},
+    "f": {"color": "#d73027", "label": "Force", "lw": 1.5},
+    "v": {"color": "#4daf4a", "label": "Virial", "lw": 1.5},
 }
+SET_LINESTYLE = {"train": "-", "val": "--"}
 
 
 def _parse_metrics(csv_path: str, x_axis: str) -> Dict:
@@ -73,70 +73,74 @@ def _parse_metrics(csv_path: str, x_axis: str) -> Dict:
     return data
 
 
-def plot_trainlog(
-    csv_path: str, x_axis: str = "epoch", output_path: Optional[str] = None
-):
-    if not os.path.exists(csv_path):
-        print_error(f"File not found: {csv_path}")
-        return
+def _make_plot(data: Dict, x_axis: str, available: list, out_dir: str):
+    fig, ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
 
-    data = _parse_metrics(csv_path, x_axis)
-
-    if not data:
-        print_warning("No valid metrics found in the CSV file.")
-        return
-
-    if output_path is None:
-        out_dir = os.path.join(
-            os.path.dirname(csv_path) or ".", "trainlog_analysis"
-        )
-    else:
-        out_dir = output_path
-    os.makedirs(out_dir, exist_ok=True)
-
-    # --- Determine available quantities ---
-    available = []
-    for short in ("e", "f", "v"):
-        for prefix in ("train", "val"):
+    for short in available:
+        mstyle = METRIC_STYLES[short]
+        for prefix, ls in SET_LINESTYLE.items():
             key = f"{prefix}_{short}"
-            if key in data:
-                available.append(short)
-                break
-    available = list(dict.fromkeys(available))  # deduplicate, keep order
+            if key not in data:
+                continue
+            d = data[key]
+            label = f"{mstyle['label']} ({prefix.capitalize()})"
+            ax.plot(
+                d["x"],
+                d["y"],
+                color=mstyle["color"],
+                lw=mstyle["lw"],
+                ls=ls,
+                alpha=0.85,
+                label=label,
+            )
 
-    if not available:
-        print_warning("No e_rmse / f_rmse / v_rmse metrics found in the CSV.")
-        return
-
-    # --- Plot ---
-    n = len(available)
-    fig, axes = plt.subplots(1, n, figsize=(6 * n, 5), squeeze=False)
-
-    for idx, short in enumerate(available):
-        ax = axes[0, idx]
-        for prefix, style in SET_STYLES.items():
-            key = f"{prefix}_{short}"
-            if key in data:
-                d = data[key]
-                ax.plot(
-                    d["x"],
-                    d["y"],
-                    color=style["color"],
-                    lw=style["lw"],
-                    alpha=0.85,
-                    label=style["label"],
-                )
-        ax.set_xlabel(x_axis.capitalize())
-        ax.set_ylabel(f"{METRIC_LABELS[short]} RMSE")
-        ax.set_yscale("log")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+    ax.set_xlabel(x_axis.capitalize())
+    ax.set_ylabel("RMSE")
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
 
     out_file = os.path.join(out_dir, f"learning_curve_{x_axis}.png")
     fig.savefig(out_file)
     plt.close(fig)
 
-    # --- Print results ---
+
+def plot_trainlog(csv_path: str, output_path: Optional[str] = None):
+    if not os.path.exists(csv_path):
+        print_error(f"File not found: {csv_path}")
+        return
+
+    if output_path is None:
+        out_dir = os.path.join(os.getcwd(), "trainlog_analysis")
+    else:
+        out_dir = output_path
+    os.makedirs(out_dir, exist_ok=True)
+
+    generated = []
+
+    for x_axis in ("epoch", "step"):
+        data = _parse_metrics(csv_path, x_axis)
+        if not data:
+            continue
+
+        available = []
+        for short in ("e", "f", "v"):
+            for prefix in ("train", "val"):
+                if f"{prefix}_{short}" in data:
+                    available.append(short)
+                    break
+        available = list(dict.fromkeys(available))
+
+        if not available:
+            continue
+
+        _make_plot(data, x_axis, available, out_dir)
+        generated.append(x_axis)
+
+    if not generated:
+        print_warning("No valid metrics found in the CSV file.")
+        return
+
     print_section("Learning Curve Generated Successfully")
     print_kv("Output Dir", out_dir)
     print_sep()

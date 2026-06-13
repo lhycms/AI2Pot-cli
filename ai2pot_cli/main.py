@@ -105,12 +105,8 @@ def _interactive_loop():
             sys.exit(0)
         elif choice == 22:
             csv_path = input(" Metrics CSV path [metrics.csv]: ").strip() or "metrics.csv"
-            x_axis = input(" X-axis (epoch/step) [epoch]: ").strip().lower() or "epoch"
-            if x_axis not in ("epoch", "step"):
-                print_warning(f"Invalid choice '{x_axis}', using default: epoch")
-                x_axis = "epoch"
             from ai2pot_cli.menus.postprocessing.plot_trainlog import plot_trainlog
-            plot_trainlog(csv_path, x_axis=x_axis)
+            plot_trainlog(csv_path)
             sys.exit(0)
 
         # --- MD Utilities ---
