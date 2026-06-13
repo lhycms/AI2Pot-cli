@@ -42,7 +42,7 @@
         "umax_num_neigh_atoms": 200,
 
         // Whether to fit virial/stress.
-        "fit_virial": false,
+        "fit_virial": true,
 
         // MTP level (number of radial basis functions).
         "mtp_level": 18,
@@ -77,8 +77,8 @@
         "f_wgt_end": 1.0,
 
         // Initial and final virial loss weights.
-        "v_wgt_start": 0.0,
-        "v_wgt_end": 0.0,
+        "v_wgt_start": 0.1,
+        "v_wgt_end": 1.0,
 
         // Maximum gradient clipping norm.
         "max_clip_norm": 10.0
@@ -117,6 +117,6 @@
         "torch_float_dtype": "float32",
 
         // Whether the extxyz file contains virial/stress labels.
-        "has_virial": false
+        "has_virial": true
     }
 }
