@@ -98,7 +98,6 @@ def _make_parity_plot(datasets: List[Dict], output_path: str):
     ax.set_ylim(elo, ehi)
     ax.set_xlabel("DFT Energy (eV/atom)")
     ax.set_ylabel("ML Energy (eV/atom)")
-    ax.set_title("Energy Parity")
     ax.legend(loc="lower right", framealpha=0.8)
     # RMSE annotation per dataset
     rmse_lines = []
@@ -121,7 +120,6 @@ def _make_parity_plot(datasets: List[Dict], output_path: str):
     ax.set_ylim(flo, fhi)
     ax.set_xlabel("DFT Force (eV/A)")
     ax.set_ylabel("ML Force (eV/A)")
-    ax.set_title("Force Parity")
     ax.legend(loc="lower right", framealpha=0.8)
     rmse_lines = []
     for ds in datasets:
@@ -146,7 +144,6 @@ def _make_parity_plot(datasets: List[Dict], output_path: str):
         ax.set_ylim(vlo, vhi)
         ax.set_xlabel("DFT Virial (eV/atom)")
         ax.set_ylabel("ML Virial (eV/atom)")
-        ax.set_title("Virial Parity")
         ax.legend(loc="lower right", framealpha=0.8)
         rmse_lines = []
         for ds in datasets:
