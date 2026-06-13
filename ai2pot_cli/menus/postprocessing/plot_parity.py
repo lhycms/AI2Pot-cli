@@ -98,13 +98,13 @@ def _make_parity_plot(datasets: List[Dict], output_path: str):
     ax.set_ylim(elo, ehi)
     ax.set_xlabel("DFT Energy (eV/atom)")
     ax.set_ylabel("ML Energy (eV/atom)")
-    ax.legend(loc="lower right", framealpha=0.8)
+    ax.legend(loc="lower right", framealpha=0.8, fontsize=18)
     # RMSE annotation per dataset
     rmse_lines = []
     for ds in datasets:
         e_rmse = np.sqrt(np.mean((ds["e_ml"] - ds["e_dft"]) ** 2))
         rmse_lines.append(f"{ds['label']} RMSE = {e_rmse * 1000:.2f} meV/atom")
-    ax.text(0.05, 0.92, "\n".join(rmse_lines), transform=ax.transAxes, fontsize=12,
+    ax.text(0.05, 0.92, "\n".join(rmse_lines), transform=ax.transAxes, fontsize=18,
             verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.6))
 
     # --- Force ---
@@ -120,12 +120,12 @@ def _make_parity_plot(datasets: List[Dict], output_path: str):
     ax.set_ylim(flo, fhi)
     ax.set_xlabel("DFT Force (eV/A)")
     ax.set_ylabel("ML Force (eV/A)")
-    ax.legend(loc="lower right", framealpha=0.8)
+    ax.legend(loc="lower right", framealpha=0.8, fontsize=18)
     rmse_lines = []
     for ds in datasets:
         f_rmse = np.sqrt(np.mean((ds["f_ml"] - ds["f_dft"]) ** 2))
         rmse_lines.append(f"{ds['label']} RMSE = {f_rmse * 1000:.2f} meV/A")
-    ax.text(0.05, 0.92, "\n".join(rmse_lines), transform=ax.transAxes, fontsize=12,
+    ax.text(0.05, 0.92, "\n".join(rmse_lines), transform=ax.transAxes, fontsize=18,
             verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.6))
 
     # --- Virial (optional) ---
@@ -144,14 +144,14 @@ def _make_parity_plot(datasets: List[Dict], output_path: str):
         ax.set_ylim(vlo, vhi)
         ax.set_xlabel("DFT Virial (eV/atom)")
         ax.set_ylabel("ML Virial (eV/atom)")
-        ax.legend(loc="lower right", framealpha=0.8)
+        ax.legend(loc="lower right", framealpha=0.8, fontsize=18)
         rmse_lines = []
         for ds in datasets:
             if "v_dft" not in ds:
                 continue
             v_rmse = np.sqrt(np.mean((ds["v_ml"] - ds["v_dft"]) ** 2))
             rmse_lines.append(f"{ds['label']} RMSE = {v_rmse * 1000:.2f} meV/atom")
-        ax.text(0.05, 0.92, "\n".join(rmse_lines), transform=ax.transAxes, fontsize=12,
+        ax.text(0.05, 0.92, "\n".join(rmse_lines), transform=ax.transAxes, fontsize=18,
                 verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.6))
 
     fig.tight_layout()
