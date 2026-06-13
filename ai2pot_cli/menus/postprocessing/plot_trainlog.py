@@ -52,10 +52,12 @@ def _extract_series(rows: List[Dict], x_axis: str, y_col: str):
         y_str = row.get(y_col, "").strip()
         if x_str and y_str:
             try:
-                x_vals.append(float(x_str))
-                y_vals.append(float(y_str))
+                xv = float(x_str)
+                yv = float(y_str)
             except ValueError:
                 continue
+            x_vals.append(xv)
+            y_vals.append(yv)
     return np.array(x_vals), np.array(y_vals)
 
 
@@ -171,11 +173,13 @@ def plot_trainlog(csv_path: str, output_path: Optional[str] = None):
     all_generated = []
 
     for x_axis in ("epoch", "step"):
-        ok_rmse = _make_rmse_plot(rows, x_axis, out_dir)
-        ok_wgt = _make_weight_plot(rows, x_axis, out_dir)
-        ok_lr = _make_lr_plot(rows, x_axis, out_dir)
-        if ok_rmse or ok_wgt or ok_lr:
+        if _make_rmse_plot(rows, x_axis, out_dir):
             all_generated.append(x_axis)
+
+    if _make_weight_plot(rows, "step", out_dir):
+        all_generated.append("weight")
+    if _make_lr_plot(rows, "step", out_dir):
+        all_generated.append("lr")
 
     if not all_generated:
         print_warning("No valid metrics found in the CSV file.")
