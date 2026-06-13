@@ -28,16 +28,16 @@ plt.rcParams.update({
 })
 
 METRIC_STYLES = {
-    "e": {"color": "#2166ac", "label": "Energy", "lw": 1.5},
-    "f": {"color": "#d73027", "label": "Force", "lw": 1.5},
-    "v": {"color": "#4daf4a", "label": "Virial", "lw": 1.5},
+    "e": {"color": "#0072B2", "label": "Energy", "lw": 1.5},
+    "f": {"color": "#E69F00", "label": "Force", "lw": 1.5},
+    "v": {"color": "#009E73", "label": "Virial", "lw": 1.5},
 }
 SET_LINESTYLE = {"train": "-", "val": "--"}
 
 GRAD_STYLES = {
-    "avg_norm":       {"color": "#2166ac", "label": "Avg Norm",       "lw": 1.5},
-    "raw_norm":       {"color": "#d73027", "label": "Raw Norm",       "lw": 1.5},
-    "clip_threshold": {"color": "#4daf4a", "label": "Clip Threshold", "lw": 1.5},
+    "avg_norm":       {"color": "#0072B2", "label": "Avg Norm",       "lw": 1.5},
+    "raw_norm":       {"color": "#E69F00", "label": "Raw Norm",       "lw": 1.5},
+    "clip_threshold": {"color": "#009E73", "label": "Clip Threshold", "lw": 1.5},
 }
 
 
