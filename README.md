@@ -22,13 +22,12 @@ $ ai2pot-cli
  ========================= Potential Training Input =========================
  11)  MTP Training Input             12)  NEP Training Input
  ============================== Postprocessing ==============================
- 21)  Evaluate Potential             22)  Plot E/F/V Parity
- 23)  Plot Learning Curve            24)  Export Predictions
+ 21)  Plot E/F/V Parity              22)  Plot Learning Curve
  =============================== MD Utilities ===============================
  91)  Doctor                         92)  Show Examples
  93)  Print Version
   0)  Quit
  ------------>> 
-
+ 
 $ ai2pot-cli train --input xxx_train.jsonc
 ```

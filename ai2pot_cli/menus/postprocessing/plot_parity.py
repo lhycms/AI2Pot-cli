@@ -24,8 +24,8 @@ plt.rcParams.update({
 })
 
 DATASET_STYLES = {
-    "Train": {"color": "#2166ac", "marker": "o", "alpha": 0.5, "s": 12},
-    "Test": {"color": "#d73027", "marker": "s", "alpha": 0.6, "s": 14},
+    "Train": {"color": "#2166ac", "marker": "o", "alpha": 0.85, "s": 16},
+    "Test": {"color": "#d73027", "marker": "s", "alpha": 0.7, "s": 14},
 }
 
 
@@ -220,14 +220,25 @@ def plot_parity(
     print_section("Parity Plot Generated Successfully")
     print_kv("Output Dir", out_dir)
     print()
+
+    rmse: Dict[str, Dict[str, float]] = {}
     for ds in datasets:
-        e_rmse = np.sqrt(np.mean((ds["e_ml"] - ds["e_dft"]) ** 2))
-        f_rmse = np.sqrt(np.mean((ds["f_ml"] - ds["f_dft"]) ** 2))
         label = ds["label"]
-        print_kv(f"RMSE ({label} Energy)", f"{e_rmse * 1000:.2f} meV/atom")
-        print_kv(f"RMSE ({label} Force)", f"{f_rmse * 1000:.2f} meV/A")
+        rmse[label] = {
+            "Energy": np.sqrt(np.mean((ds["e_ml"] - ds["e_dft"]) ** 2)) * 1000,
+            "Force": np.sqrt(np.mean((ds["f_ml"] - ds["f_dft"]) ** 2)) * 1000,
+        }
         if "v_dft" in ds:
-            v_rmse = np.sqrt(np.mean((ds["v_ml"] - ds["v_dft"]) ** 2))
-            print_kv(f"RMSE ({label} Virial)", f"{v_rmse * 1000:.2f} meV/atom")
+            rmse[label]["Virial"] = np.sqrt(np.mean((ds["v_ml"] - ds["v_dft"]) ** 2)) * 1000
+
+    labels = [ds["label"] for ds in datasets]
+    units = [("Energy", "meV/atom"), ("Force", "meV/A"), ("Virial", "meV/atom")]
+
+    for key, unit in units:
+        if key not in rmse[labels[0]]:
+            continue
+        parts = [f"{lbl:<5} {rmse[lbl][key]:>7.2f}" for lbl in labels]
+        print(f"  {'RMSE ' + key:<18}: {' | '.join(parts)} {unit}")
+
     print_sep()
     print()
