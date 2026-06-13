@@ -12,12 +12,12 @@ from ai2pot_cli.menu import print_section, print_kv, print_sep, print_error, pri
 
 # Paper-ready style
 plt.rcParams.update({
-    "font.size": 14,
-    "axes.labelsize": 16,
-    "axes.titlesize": 16,
-    "xtick.labelsize": 13,
-    "ytick.labelsize": 13,
-    "legend.fontsize": 13,
+    "font.size": 18,
+    "axes.labelsize": 20,
+    "axes.titlesize": 20,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize": 16,
     "figure.dpi": 300,
     "savefig.dpi": 300,
     "savefig.bbox": "tight",
