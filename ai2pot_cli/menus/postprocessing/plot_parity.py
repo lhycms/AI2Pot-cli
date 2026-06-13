@@ -24,8 +24,8 @@ plt.rcParams.update({
 })
 
 DATASET_STYLES = {
-    "Train": {"color": "#0072B2", "marker": "o", "alpha": 0.85, "s": 16},
-    "Test": {"color": "#E69F00", "marker": "s", "alpha": 0.8, "s": 14},
+    "Train": {"color": "#4477AA", "marker": "o", "alpha": 0.85, "s": 16},
+    "Test": {"color": "#44AA99", "marker": "s", "alpha": 0.8, "s": 14},
 }
 
 
