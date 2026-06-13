@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Plot training learning curves from CSVLogger metrics.csv."""
+"""Plot training curves from CSVLogger metrics.csv."""
 
 from __future__ import annotations
 
 import csv
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 import matplotlib
 
@@ -35,64 +35,58 @@ METRIC_STYLES = {
 SET_LINESTYLE = {"train": "-", "val": "--"}
 
 
-def _parse_metrics(csv_path: str, x_axis: str) -> Dict:
+def _read_csv(csv_path: str) -> List[Dict]:
     rows = []
     with open(csv_path, "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
             rows.append(row)
+    return rows
 
-    if not rows:
-        return {}
 
-    all_cols = list(rows[0].keys())
-    data = {}
-
-    for prefix in ("train", "val"):
-        for metric in ("e_rmse", "f_rmse", "v_rmse"):
-            col = f"{prefix}/{metric}_{x_axis}"
-            if col not in all_cols:
+def _extract_series(rows: List[Dict], x_axis: str, y_col: str):
+    """Extract x, y arrays from CSV rows for a given column."""
+    x_vals, y_vals = [], []
+    for row in rows:
+        x_str = row.get(x_axis, "").strip()
+        y_str = row.get(y_col, "").strip()
+        if x_str and y_str:
+            try:
+                x_vals.append(float(x_str))
+                y_vals.append(float(y_str))
+            except ValueError:
                 continue
-            x_vals = []
-            y_vals = []
-            for row in rows:
-                x_str = row.get(x_axis, "").strip()
-                y_str = row.get(col, "").strip()
-                if x_str and y_str:
-                    try:
-                        x_vals.append(float(x_str))
-                        y_vals.append(float(y_str))
-                    except ValueError:
-                        continue
-
-            if x_vals:
-                short = metric[0]  # e, f, v
-                key = f"{prefix}_{short}"
-                data[key] = {"x": np.array(x_vals), "y": np.array(y_vals)}
-
-    return data
+    return np.array(x_vals), np.array(y_vals)
 
 
-def _make_plot(data: Dict, x_axis: str, available: list, out_dir: str):
+def _make_rmse_plot(rows: List[Dict], x_axis: str, out_dir: str):
+    """Energy / Force / Virial RMSE on a single log-scale plot."""
+    available = []
+    for short in ("e", "f", "v"):
+        col = f"train/{short}_rmse_{x_axis}"
+        found = False
+        for row in rows:
+            if row.get(col, "").strip():
+                found = True
+                break
+        if found:
+            available.append(short)
+
+    if not available:
+        return False
+
     fig, ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
 
     for short in available:
         mstyle = METRIC_STYLES[short]
         for prefix, ls in SET_LINESTYLE.items():
-            key = f"{prefix}_{short}"
-            if key not in data:
+            col = f"{prefix}/{short}_rmse_{x_axis}"
+            x, y = _extract_series(rows, x_axis, col)
+            if len(x) == 0:
                 continue
-            d = data[key]
             label = f"{mstyle['label']} ({prefix.capitalize()})"
-            ax.plot(
-                d["x"],
-                d["y"],
-                color=mstyle["color"],
-                lw=mstyle["lw"],
-                ls=ls,
-                alpha=0.85,
-                label=label,
-            )
+            ax.plot(x, y, color=mstyle["color"], lw=mstyle["lw"], ls=ls,
+                    alpha=0.85, label=label)
 
     ax.set_xlabel(x_axis.capitalize())
     ax.set_ylabel("RMSE")
@@ -100,14 +94,72 @@ def _make_plot(data: Dict, x_axis: str, available: list, out_dir: str):
     ax.legend()
     ax.grid(True, alpha=0.3)
 
-    out_file = os.path.join(out_dir, f"learning_curve_{x_axis}.png")
-    fig.savefig(out_file)
+    fig.savefig(os.path.join(out_dir, f"learning_curve_{x_axis}.png"))
     plt.close(fig)
+    return True
+
+
+def _make_weight_plot(rows: List[Dict], x_axis: str, out_dir: str):
+    """Energy / Force / Virial loss weights on a single plot."""
+    available = []
+    for short in ("e", "f", "v"):
+        col = f"train/{short}_wgt"
+        for row in rows:
+            if row.get(col, "").strip():
+                available.append(short)
+                break
+
+    if not available:
+        return False
+
+    fig, ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
+
+    for short in available:
+        mstyle = METRIC_STYLES[short]
+        col = f"train/{short}_wgt"
+        x, y = _extract_series(rows, x_axis, col)
+        if len(x) == 0:
+            continue
+        ax.plot(x, y, color=mstyle["color"], lw=mstyle["lw"],
+                alpha=0.85, label=mstyle["label"])
+
+    ax.set_xlabel(x_axis.capitalize())
+    ax.set_ylabel("Loss Weight")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    fig.savefig(os.path.join(out_dir, f"weight_curve_{x_axis}.png"))
+    plt.close(fig)
+    return True
+
+
+def _make_lr_plot(rows: List[Dict], x_axis: str, out_dir: str):
+    """Learning rate on a log-scale plot."""
+    col = "train/lr"
+    x, y = _extract_series(rows, x_axis, col)
+    if len(x) == 0:
+        return False
+
+    fig, ax = plt.subplots(figsize=(8, 5.5), constrained_layout=True)
+    ax.plot(x, y, color="#333333", lw=1.5, alpha=0.85)
+    ax.set_xlabel(x_axis.capitalize())
+    ax.set_ylabel("Learning Rate")
+    ax.set_yscale("log")
+    ax.grid(True, alpha=0.3)
+
+    fig.savefig(os.path.join(out_dir, f"lr_curve_{x_axis}.png"))
+    plt.close(fig)
+    return True
 
 
 def plot_trainlog(csv_path: str, output_path: Optional[str] = None):
     if not os.path.exists(csv_path):
         print_error(f"File not found: {csv_path}")
+        return
+
+    rows = _read_csv(csv_path)
+    if not rows:
+        print_warning("CSV file is empty.")
         return
 
     if output_path is None:
@@ -116,32 +168,20 @@ def plot_trainlog(csv_path: str, output_path: Optional[str] = None):
         out_dir = output_path
     os.makedirs(out_dir, exist_ok=True)
 
-    generated = []
+    all_generated = []
 
     for x_axis in ("epoch", "step"):
-        data = _parse_metrics(csv_path, x_axis)
-        if not data:
-            continue
+        ok_rmse = _make_rmse_plot(rows, x_axis, out_dir)
+        ok_wgt = _make_weight_plot(rows, x_axis, out_dir)
+        ok_lr = _make_lr_plot(rows, x_axis, out_dir)
+        if ok_rmse or ok_wgt or ok_lr:
+            all_generated.append(x_axis)
 
-        available = []
-        for short in ("e", "f", "v"):
-            for prefix in ("train", "val"):
-                if f"{prefix}_{short}" in data:
-                    available.append(short)
-                    break
-        available = list(dict.fromkeys(available))
-
-        if not available:
-            continue
-
-        _make_plot(data, x_axis, available, out_dir)
-        generated.append(x_axis)
-
-    if not generated:
+    if not all_generated:
         print_warning("No valid metrics found in the CSV file.")
         return
 
-    print_section("Learning Curve Generated Successfully")
+    print_section("Training Curves Generated Successfully")
     print_kv("Output Dir", out_dir)
     print_sep()
     print()
