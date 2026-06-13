@@ -21,7 +21,14 @@ def plot_menu():
         elif choice == 1:
             print(" -> Generating parity plot ...\n")
         elif choice == 2:
-            print(" -> Generating learning curve ...\n")
+            csv_path = input(" Metrics CSV path [metrics.csv]: ").strip() or "metrics.csv"
+            x_axis = input(" X-axis (epoch/step) [epoch]: ").strip().lower() or "epoch"
+            if x_axis not in ("epoch", "step"):
+                print_warning(f"Invalid choice '{x_axis}', using default: epoch")
+                x_axis = "epoch"
+            from ai2pot_cli.menus.postprocessing.plot_trainlog import plot_trainlog
+            plot_trainlog(csv_path, x_axis=x_axis)
+            sys.exit(0)
         elif choice == 3:
             print(" -> Generating energy landscape ...\n")
         else:
