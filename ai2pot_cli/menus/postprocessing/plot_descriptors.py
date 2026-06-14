@@ -77,11 +77,9 @@ def _lighten(hex_color: str, factor: float = 0.35) -> str:
 
 
 def _darken(hex_color: str, factor: float = 0.35) -> str:
-    """Shift hex colour toward a darker tone in HLS space."""
-    rgb = mcolors.to_rgb(hex_color)
-    h, l, s = mcolors.rgb_to_hls(rgb)
-    l = max(0.0, l * (1.0 - factor))
-    return mcolors.to_hex(mcolors.hls_to_rgb(h, l, s))
+    """Blend hex colour toward black."""
+    rgb = np.array(mcolors.to_rgb(hex_color))
+    return mcolors.to_hex(rgb * (1.0 - factor))
 
 
 def _get_element_color(z: int) -> str:
