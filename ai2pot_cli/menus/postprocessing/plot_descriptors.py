@@ -26,41 +26,6 @@ plt.rcParams.update({
     "savefig.bbox": "tight",
 })
 
-# Distinguishable base colours for elements (colourblind-friendly palette, extended)
-_ELEMENT_BASE = {
-    1:  "#1f77b4",   # H  - blue
-    3:  "#ff7f0e",   # Li - orange
-    5:  "#2ca02c",   # B  - green
-    6:  "#d62728",   # C  - red
-    7:  "#9467bd",   # N  - purple
-    8:  "#8c564b",   # O  - brown
-    9:  "#e377c2",   # F  - pink
-    11: "#7f7f7f",   # Na - grey
-    13: "#bcbd22",   # Al - olive
-    14: "#17becf",   # Si - cyan
-    15: "#aec7e8",   # P  - lt blue
-    16: "#ffbb78",   # S  - lt orange
-    17: "#98df8a",   # Cl - lt green
-    19: "#ff9896",   # K  - lt red
-    20: "#c5b0d5",   # Ca - lt purple
-    22: "#c49c94",   # Ti - lt brown
-    25: "#f7b6d2",   # Mn - lt pink
-    26: "#dbdb8d",   # Fe - lt olive
-    28: "#9edae5",   # Ni - lt cyan
-    29: "#393b79",   # Cu - dk blue
-    30: "#637939",   # Zn - dk green
-    40: "#8c6d31",   # Zr - dk brown
-    56: "#843c39",   # Ba - dk red
-    74: "#7b4173",   # W  - dk purple
-}
-
-_FALLBACK = [
-    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-    "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-    "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
-    "#c49c94", "#f7b6d2", "#dbdb8d", "#9edae5", "#393b79",
-]
-
 
 def _get_symbol(z: int) -> str:
     """Atomic number → symbol via ase."""
@@ -80,14 +45,6 @@ def _darken(hex_color: str, factor: float = 0.35) -> str:
     """Blend hex colour toward black."""
     rgb = np.array(mcolors.to_rgb(hex_color))
     return mcolors.to_hex(rgb * (1.0 - factor))
-
-
-def _get_element_color(z: int) -> str:
-    """Return a stable base colour for an atomic number."""
-    if z in _ELEMENT_BASE:
-        return _ELEMENT_BASE[z]
-    idx = hash(z) % len(_FALLBACK)
-    return _FALLBACK[idx]
 
 
 def _detect_model_type(checkpoint_path: str) -> str:
@@ -132,7 +89,8 @@ def _make_projection_plot(
     """PCA projection of descriptors, coloured by element and dataset.
 
     Train markers use lighter shades; Test markers use darker shades of the
-    same per-element colour.  PCA is fitted on the union of both sets.
+    same per-element colour.  PCA is fitted on the training set (if available)
+    and applied to both sets.
     """
     # --- gather unique elements ---
     all_z: List[int] = []
@@ -141,6 +99,10 @@ def _make_projection_plot(
     if test_z is not None:
         all_z.extend(np.unique(test_z).tolist())
     unique_z = sorted(set(all_z))
+
+    # --- auto-assign stable colours via colormap ---
+    cmap = plt.get_cmap("tab20")
+    z_to_color = {z: mcolors.to_hex(cmap(i % cmap.N)) for i, z in enumerate(unique_z)}
 
     # --- PCA: fit on train only if available, else fit on test ---
     pca = PCA(n_components=2)
@@ -155,7 +117,7 @@ def _make_projection_plot(
     marker_size = 8
 
     for z in unique_z:
-        base = _get_element_color(z)
+        base = z_to_color[z]
         light = _lighten(base)
         dark = _darken(base)
         symbol = _get_symbol(z)
@@ -181,11 +143,9 @@ def _make_projection_plot(
     ax.set_xlabel("PC 1")
     ax.set_ylabel("PC 2")
 
-    # Legend outside
     n_elements = len(unique_z)
     ncol = 2 if n_elements > 5 else 1
-    ax.legend(loc="upper left", bbox_to_anchor=(1.01, 1.0),
-              framealpha=0.8, fontsize=13, ncol=ncol,
+    ax.legend(loc="best", framealpha=0.35, fontsize=13, ncol=ncol,
               handletextpad=0.3, columnspacing=0.5)
 
     fig.tight_layout()
