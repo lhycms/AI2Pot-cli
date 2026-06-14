@@ -29,6 +29,7 @@ MAIN_SECTIONS = [
     ("Postprocessing", [
         (21, "Plot E/F/V Parity"),
         (22, "Plot Learning Curve"),
+        (23, "Plot Descriptor Projection"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -107,6 +108,19 @@ def _interactive_loop():
             csv_path = input(" Metrics CSV path [metrics.csv]: ").strip() or "metrics.csv"
             from ai2pot_cli.menus.postprocessing.plot_trainlog import plot_trainlog
             plot_trainlog(csv_path)
+            sys.exit(0)
+        elif choice == 23:
+            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
+            if not checkpoint_path:
+                print_warning("No checkpoint path provided.")
+                continue
+            trainset_path = input(" Trainset path (.xyz) [optional]: ").strip() or None
+            testset_path = input(" Testset path (.xyz) [optional]: ").strip() or None
+            if not trainset_path and not testset_path:
+                print_warning("At least one of trainset or testset must be provided.")
+                continue
+            from ai2pot_cli.menus.postprocessing.plot_descriptors import plot_descriptor_projection
+            plot_descriptor_projection(checkpoint_path, trainset_path=trainset_path, testset_path=testset_path)
             sys.exit(0)
 
         # --- MD Utilities ---
