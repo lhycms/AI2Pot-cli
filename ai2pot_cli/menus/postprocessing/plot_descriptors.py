@@ -134,14 +134,7 @@ def _make_projection_plot(
     Train markers use lighter shades; Test markers use darker shades of the
     same per-element colour.  PCA is fitted on the union of both sets.
     """
-    # --- gather all data & unique elements ---
-    blocks: List[np.ndarray] = []
-    if train_desc is not None:
-        blocks.append(train_desc)
-    if test_desc is not None:
-        blocks.append(test_desc)
-    all_desc = np.concatenate(blocks, axis=0)
-
+    # --- gather unique elements ---
     all_z: List[int] = []
     if train_z is not None:
         all_z.extend(np.unique(train_z).tolist())
@@ -149,9 +142,12 @@ def _make_projection_plot(
         all_z.extend(np.unique(test_z).tolist())
     unique_z = sorted(set(all_z))
 
-    # --- PCA ---
+    # --- PCA: fit on train only if available, else fit on test ---
     pca = PCA(n_components=2)
-    pca.fit(all_desc)
+    if train_desc is not None:
+        pca.fit(train_desc)
+    elif test_desc is not None:
+        pca.fit(test_desc)
 
     # --- plot ---
     fig, ax = plt.subplots(figsize=(8, 6.5))
