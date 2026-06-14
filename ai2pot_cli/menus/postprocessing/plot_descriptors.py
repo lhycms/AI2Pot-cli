@@ -1,12 +1,11 @@
 """Descriptor projection plot: PCA of atomic descriptors for train/test sets."""
 
 import os
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Tuple
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import numpy as np
 import torch
 from sklearn.decomposition import PCA
@@ -33,18 +32,6 @@ def _get_symbol(z: int) -> str:
     if 0 < z < len(chemical_symbols):
         return chemical_symbols[z]
     return f"Z{z}"
-
-
-def _lighten(hex_color: str, factor: float = 0.35) -> str:
-    """Blend hex colour toward white."""
-    rgb = np.array(mcolors.to_rgb(hex_color))
-    return mcolors.to_hex(rgb + (1.0 - rgb) * factor)
-
-
-def _darken(hex_color: str, factor: float = 0.35) -> str:
-    """Blend hex colour toward black."""
-    rgb = np.array(mcolors.to_rgb(hex_color))
-    return mcolors.to_hex(rgb * (1.0 - factor))
 
 
 def _detect_model_type(checkpoint_path: str) -> str:
@@ -86,11 +73,10 @@ def _make_projection_plot(
     test_z: Optional[np.ndarray],
     output_path: str,
 ):
-    """PCA projection of descriptors, coloured by element and dataset.
+    """PCA projection of descriptors.
 
-    Train markers use lighter shades; Test markers use darker shades of the
-    same per-element colour.  PCA is fitted on the training set (if available)
-    and applied to both sets.
+    Colour encodes the element, marker shape encodes train (circle) vs test (square).
+    PCA is fitted on the training set (if available) and applied to both sets.
     """
     # --- gather unique elements ---
     all_z: List[int] = []
@@ -100,9 +86,25 @@ def _make_projection_plot(
         all_z.extend(np.unique(test_z).tolist())
     unique_z = sorted(set(all_z))
 
-    # --- auto-assign stable colours via colormap ---
-    cmap = plt.get_cmap("tab20")
-    z_to_color = {z: mcolors.to_hex(cmap(i % cmap.N)) for i, z in enumerate(unique_z)}
+    # --- high-distinction palette ---
+    _DISTINCT_COLORS = [
+        "#0072B2",  # blue
+        "#D55E00",  # vermillion
+        "#009E73",  # green
+        "#CC79A7",  # reddish purple
+        "#E69F00",  # orange
+        "#56B4E9",  # sky blue
+        "#F0E442",  # yellow
+        "#000000",  # black
+        "#999999",  # grey
+        "#882255",
+        "#44AA99",
+        "#AA4499",
+    ]
+    z_to_color = {
+        z: _DISTINCT_COLORS[i % len(_DISTINCT_COLORS)]
+        for i, z in enumerate(unique_z)
+    }
 
     # --- PCA: fit on train only if available, else fit on test ---
     pca = PCA(n_components=2)
@@ -118,8 +120,6 @@ def _make_projection_plot(
 
     for z in unique_z:
         base = z_to_color[z]
-        light = _lighten(base)
-        dark = _darken(base)
         symbol = _get_symbol(z)
 
         # Train
@@ -127,8 +127,8 @@ def _make_projection_plot(
             mask = train_z == z
             if mask.any():
                 proj = pca.transform(train_desc[mask])
-                ax.scatter(proj[:, 0], proj[:, 1], s=marker_size, alpha=0.7,
-                           c=light, marker="o", edgecolors="none",
+                ax.scatter(proj[:, 0], proj[:, 1], s=marker_size, alpha=0.65,
+                           c=base, marker="o", edgecolors="none",
                            label=f"{symbol} (Train)")
 
         # Test
@@ -137,7 +137,7 @@ def _make_projection_plot(
             if mask.any():
                 proj = pca.transform(test_desc[mask])
                 ax.scatter(proj[:, 0], proj[:, 1], s=marker_size * 1.5, alpha=0.85,
-                           c=dark, marker="s", edgecolors="none",
+                           c=base, marker="s", edgecolors="black", linewidths=0.3,
                            label=f"{symbol} (Test)")
 
     ax.set_xlabel("PC 1")
