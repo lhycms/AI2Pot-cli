@@ -115,12 +115,31 @@ def run_train(config_path: str) -> None:
         has_virial=dataset_cfg.get("has_virial", False),
     )
 
-    # --- Build Callbacks ---
+    # --- Detect resume & build logger ---
     save_dir = trainer_cfg.get("save_dir", "./")
-    ckpt_dir = os.path.join(save_dir, "checkpoints")
-    last_ckpt = os.path.join(ckpt_dir, "last.ckpt")
-    is_resume = os.path.isfile(last_ckpt)
+    logs_root = os.path.join(save_dir, "lightning_logs")
 
+    # Scan existing version dirs for a last.ckpt — if found, resume from the
+    # same version so logs and checkpoints stay together.
+    is_resume = False
+    last_ckpt = None
+    resume_version = None
+    if os.path.isdir(logs_root):
+        for ver in sorted(os.listdir(logs_root)):
+            candidate = os.path.join(logs_root, ver, "checkpoints", "last.ckpt")
+            if os.path.isfile(candidate):
+                last_ckpt = candidate
+                resume_version = int(ver.split("_")[-1])
+                is_resume = True
+
+    if is_resume:
+        csv_logger = CSVLogger(save_dir=save_dir, version=resume_version)
+    else:
+        csv_logger = CSVLogger(save_dir=save_dir)
+
+    ckpt_dir = os.path.join(csv_logger.log_dir, "checkpoints")
+
+    # --- Build Callbacks ---
     callbacks = []
     callbacks.append(ModelCheckpoint(
         dirpath=ckpt_dir,
@@ -142,7 +161,6 @@ def run_train(config_path: str) -> None:
             callbacks.append(EnergyShiftCallback())
 
     # --- Build Trainer ---
-    csv_logger = CSVLogger(save_dir=save_dir)
     trainer = L.Trainer(
         max_epochs=trainer_cfg["max_epochs"],
         accelerator=trainer_cfg.get("accelerator", "auto"),
@@ -150,7 +168,6 @@ def run_train(config_path: str) -> None:
         limit_val_batches=trainer_cfg.get("limit_val_batches", 0),
         log_every_n_steps=trainer_cfg.get("log_every_n_steps", 500),
         enable_progress_bar=trainer_cfg.get("enable_progress_bar", False),
-        default_root_dir=save_dir,
         logger=csv_logger,
         callbacks=callbacks,
     )
