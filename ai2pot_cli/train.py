@@ -121,6 +121,33 @@ def run_train(config_path: str) -> None:
     resume_ckpt: str | None = trainer_cfg.get("resume_ckpt")
     is_resume = bool(resume_ckpt)
 
+    # Patch model to fix LR scheduler T_max after checkpoint restore.
+    # PyTorch's LRScheduler.load_state_dict() restores T_max from checkpoint,
+    # which overwrites the value computed from the current max_epochs.  We fix
+    # it back in on_train_start(), which Lightning calls after checkpoint load.
+    if is_resume:
+        _orig_configure_optimizers = lit_model.configure_optimizers
+
+        def _patched_configure_optimizers():
+            result = _orig_configure_optimizers()
+            sched = result['lr_scheduler']['scheduler']
+            for sub in sched._schedulers:
+                if isinstance(sub, torch.optim.lr_scheduler.CosineAnnealingLR):
+                    lit_model._cosine_scheduler = sub
+                    lit_model._cosine_t_max = sub.T_max
+                    lit_model._cosine_eta_min = sub.eta_min
+                    break
+            return result
+
+        lit_model.configure_optimizers = _patched_configure_optimizers
+
+        def _on_train_start():
+            if hasattr(lit_model, '_cosine_scheduler'):
+                lit_model._cosine_scheduler.T_max = lit_model._cosine_t_max
+                lit_model._cosine_scheduler.eta_min = lit_model._cosine_eta_min
+
+        lit_model.on_train_start = _on_train_start
+
     if is_resume:
         # Parse version number from the checkpoint path so resumed training
         # stays in the same lightning_logs/version_X/ directory.
@@ -131,6 +158,16 @@ def run_train(config_path: str) -> None:
         csv_logger = CSVLogger(save_dir=save_dir)
 
     ckpt_dir = os.path.join(csv_logger.log_dir, "checkpoints")
+
+    # CSVLogger opens metrics.csv in 'w' mode to write the header on first
+    # log, which would overwrite history when resuming into the same version.
+    # Save a backup so we can merge after training.
+    metrics_path = os.path.join(csv_logger.log_dir, "metrics.csv")
+    metrics_backup = None
+    if is_resume and os.path.isfile(metrics_path):
+        import shutil, tempfile
+        metrics_backup = os.path.join(tempfile.gettempdir(), f"ai2pot_metrics_resume_bak_{os.getpid()}")
+        shutil.copy2(metrics_path, metrics_backup)
 
     # --- Build Callbacks ---
     callbacks = []
@@ -167,3 +204,17 @@ def run_train(config_path: str) -> None:
 
     # --- Run ---
     trainer.fit(model=lit_model, datamodule=datamodule, ckpt_path=resume_ckpt)
+
+    # --- Merge metrics on resume (CSVLogger overwrites the header) ---
+    if metrics_backup:
+        with open(metrics_backup, 'r') as f:
+            old = f.read()
+        with open(metrics_path, 'r') as f:
+            new = f.read()
+        old_lines = [l for l in old.strip().split('\n') if l]
+        new_lines = [l for l in new.strip().split('\n') if l]
+        # Both have the same header; skip the duplicate from the new file.
+        merged = '\n'.join(old_lines + new_lines[1:]) + '\n'
+        with open(metrics_path, 'w') as f:
+            f.write(merged)
+        os.remove(metrics_backup)
