@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 import torch
 import lightning as L
+from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 
 from ai2pot.data import ExtxyzDataset, ExtxyzDataModule
@@ -115,17 +116,33 @@ def run_train(config_path: str) -> None:
     )
 
     # --- Build Callbacks ---
+    save_dir = trainer_cfg.get("save_dir", "./")
+    ckpt_dir = os.path.join(save_dir, "checkpoints")
+    last_ckpt = os.path.join(ckpt_dir, "last.ckpt")
+    is_resume = os.path.isfile(last_ckpt)
+
     callbacks = []
-    if trainer_cfg.get("enable_descriptor_norm", True):
-        if is_mtp:
-            callbacks.append(LinearMtpDescriptorNormCallback())
-        else:
-            callbacks.append(NepDescriptorNormCallback())
-    if trainer_cfg.get("enable_energy_shift", False):
-        callbacks.append(EnergyShiftCallback())
+    callbacks.append(ModelCheckpoint(
+        dirpath=ckpt_dir,
+        save_top_k=3,
+        monitor="train/mse",
+        mode="min",
+        every_n_epochs=1,
+        save_last=True,
+        save_on_train_epoch_end=True,
+    ))
+
+    if not is_resume:
+        if trainer_cfg.get("enable_descriptor_norm", True):
+            if is_mtp:
+                callbacks.append(LinearMtpDescriptorNormCallback())
+            else:
+                callbacks.append(NepDescriptorNormCallback())
+        if trainer_cfg.get("enable_energy_shift", False):
+            callbacks.append(EnergyShiftCallback())
 
     # --- Build Trainer ---
-    csv_logger = CSVLogger(save_dir=trainer_cfg.get("save_dir", "./"))
+    csv_logger = CSVLogger(save_dir=save_dir)
     trainer = L.Trainer(
         max_epochs=trainer_cfg["max_epochs"],
         accelerator=trainer_cfg.get("accelerator", "auto"),
@@ -133,9 +150,11 @@ def run_train(config_path: str) -> None:
         limit_val_batches=trainer_cfg.get("limit_val_batches", 0),
         log_every_n_steps=trainer_cfg.get("log_every_n_steps", 500),
         enable_progress_bar=trainer_cfg.get("enable_progress_bar", False),
+        default_root_dir=save_dir,
         logger=csv_logger,
         callbacks=callbacks,
     )
 
     # --- Run ---
-    trainer.fit(model=lit_model, datamodule=datamodule)
+    ckpt_path = last_ckpt if is_resume else None
+    trainer.fit(model=lit_model, datamodule=datamodule, ckpt_path=ckpt_path)
