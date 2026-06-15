@@ -17,6 +17,27 @@ from ai2pot.models.mtp.linear_mtp_train_utils import LinearMtpDescriptorNormCall
 from ai2pot.models.potential_train_utils import EnergyShiftCallback
 
 
+class _FixTmaxCallback(L.Callback):
+    """Fix CosineAnnealingLR.T_max / eta_min after checkpoint restore.
+
+    PyTorch's LRScheduler.load_state_dict() overwrites T_max and eta_min
+    with the values from the checkpoint.  For extended training the new
+    T_max must reflect the current max_epochs.
+    """
+
+    def on_train_start(self, trainer, pl_module):
+        if not hasattr(pl_module, '_resume_t_max'):
+            return
+        for config in trainer.lr_scheduler_configs:
+            sched = config.scheduler
+            if isinstance(sched, torch.optim.lr_scheduler.SequentialLR):
+                for sub in sched._schedulers:
+                    if isinstance(sub, torch.optim.lr_scheduler.CosineAnnealingLR):
+                        sub.T_max = pl_module._resume_t_max
+                        sub.eta_min = pl_module._resume_eta_min
+                        return
+
+
 def _get_dtype(s: str) -> torch.dtype:
     mapping = {
         "float32": torch.float32,
@@ -121,12 +142,10 @@ def run_train(config_path: str) -> None:
     resume_ckpt: str | None = trainer_cfg.get("resume_ckpt")
     is_resume = bool(resume_ckpt)
 
-    # Patch model to prevent LR scheduler T_max / eta_min from being
-    # overwritten by checkpoint restore.  PyTorch's LRScheduler.load_state_dict()
-    # restores *all* instance attributes, including CosineAnnealingLR.T_max,
-    # which was computed from the original max_epochs.  For extended training
-    # the new T_max must reflect the current max_epochs so the LR lands at the
-    # correct position on the cosine curve.
+    # Patch model to capture the CosineAnnealingLR T_max / eta_min computed
+    # from the current max_epochs.  PyTorch's LRScheduler.load_state_dict()
+    # overwrites them with the checkpoint values; a callback fixes them back
+    # in on_train_start (after checkpoint restore, before the first step).
     if is_resume:
         _orig_configure_optimizers = lit_model.configure_optimizers
 
@@ -135,14 +154,8 @@ def run_train(config_path: str) -> None:
             sched = result['lr_scheduler']['scheduler']
             for sub in sched._schedulers:
                 if isinstance(sub, torch.optim.lr_scheduler.CosineAnnealingLR):
-                    _orig_load = sub.load_state_dict
-
-                    def _patched_load_state_dict(sd, _orig=_orig_load):
-                        sd.pop('T_max', None)
-                        sd.pop('eta_min', None)
-                        _orig(sd)
-
-                    sub.load_state_dict = _patched_load_state_dict
+                    lit_model._resume_t_max = sub.T_max
+                    lit_model._resume_eta_min = sub.eta_min
                     break
             return result
 
@@ -161,13 +174,12 @@ def run_train(config_path: str) -> None:
 
     # CSVLogger opens metrics.csv in 'w' mode to write the header on first
     # log, which would overwrite history when resuming into the same version.
-    # Save a backup so we can merge after training.
+    # Read the old content now so we can prepend it after training.
     metrics_path = os.path.join(csv_logger.log_dir, "metrics.csv")
-    metrics_backup = None
+    old_metrics = None
     if is_resume and os.path.isfile(metrics_path):
-        import shutil, tempfile
-        metrics_backup = os.path.join(tempfile.gettempdir(), f"ai2pot_metrics_resume_bak_{os.getpid()}")
-        shutil.copy2(metrics_path, metrics_backup)
+        with open(metrics_path, 'r') as f:
+            old_metrics = f.read()
 
     # --- Build Callbacks ---
     callbacks = []
@@ -181,7 +193,9 @@ def run_train(config_path: str) -> None:
         save_on_train_epoch_end=True,
     ))
 
-    if not is_resume:
+    if is_resume:
+        callbacks.append(_FixTmaxCallback())
+    else:
         if trainer_cfg.get("enable_descriptor_norm", True):
             if is_mtp:
                 callbacks.append(LinearMtpDescriptorNormCallback())
@@ -205,16 +219,13 @@ def run_train(config_path: str) -> None:
     # --- Run ---
     trainer.fit(model=lit_model, datamodule=datamodule, ckpt_path=resume_ckpt)
 
-    # --- Merge metrics on resume (CSVLogger overwrites the header) ---
-    if metrics_backup:
-        with open(metrics_backup, 'r') as f:
-            old = f.read()
+    # --- Prepend old metrics on resume (CSVLogger overwrites the header) ---
+    if old_metrics is not None:
         with open(metrics_path, 'r') as f:
             new = f.read()
-        old_lines = [l for l in old.strip().split('\n') if l]
+        old_lines = [l for l in old_metrics.strip().split('\n') if l]
         new_lines = [l for l in new.strip().split('\n') if l]
         # Both have the same header; skip the duplicate from the new file.
         merged = '\n'.join(old_lines + new_lines[1:]) + '\n'
         with open(metrics_path, 'w') as f:
             f.write(merged)
-        os.remove(metrics_backup)
