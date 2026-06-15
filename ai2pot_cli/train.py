@@ -16,38 +16,44 @@ from ai2pot.models.nep.nep_train_utils import NepDescriptorNormCallback
 from ai2pot.models.mtp.linear_mtp_train_utils import LinearMtpDescriptorNormCallback
 from ai2pot.models.potential_train_utils import EnergyShiftCallback
 
-# Patch CosineAnnealingLR.load_state_dict to never restore T_max / eta_min
-# from a checkpoint.  These must always reflect the current max_epochs so
-# that extended training lands at the correct position on the cosine curve.
+# When extend_training is enabled, replace the CosineAnnealingLR with a fresh
+# one whose T_max = remaining_steps:
 #
-# We patch at two levels because some PyTorch versions' SequentialLR does not
-# reliably delegate load_state_dict to sub-schedulers:
-#   1. CosineAnnealingLR.load_state_dict — strips from its own state
-#   2. SequentialLR.load_state_dict — strips from sub-scheduler states before
-#      passing them down (belt-and-suspenders).
+#   - If current LR > lr_end (training not yet finished): start the new cosine
+#     from current_lr, descending smoothly to lr_end.
+#   - If current LR ≈ lr_end (previous training completed): first raise the LR
+#     to lr_restart, then start a new cosine from there down to lr_end.
+class _ExtendTrainingCallback(L.Callback):
+    def __init__(self, lr_restart):
+        self._lr_restart = lr_restart
 
-_orig_cosine_load = torch.optim.lr_scheduler.CosineAnnealingLR.load_state_dict
+    def on_train_start(self, trainer, pl_module):
+        opt = trainer.optimizers[0]
+        current_lr = opt.param_groups[0]["lr"]
+        lr_end = pl_module.lr_end
+        lr_start = pl_module.lr_start
 
+        # If the previous training completed (LR already at lr_end), restart
+        # from a higher LR so the new cosine has a meaningful decay range.
+        if current_lr <= lr_end * 1.1:
+            restart = self._lr_restart if self._lr_restart is not None else lr_start * 0.1
+            for pg in opt.param_groups:
+                pg["lr"] = restart
 
-def _patched_cosine_load_state_dict(self, state_dict):
-    state_dict.pop('T_max', None)
-    state_dict.pop('eta_min', None)
-    _orig_cosine_load(self, state_dict)
+        steps_per_epoch = trainer.num_training_batches
+        current_step = trainer.global_step
+        total_steps = trainer.max_epochs * steps_per_epoch
+        remaining = max(total_steps - current_step, 1)
 
-
-torch.optim.lr_scheduler.CosineAnnealingLR.load_state_dict = _patched_cosine_load_state_dict
-
-_orig_sequential_load = torch.optim.lr_scheduler.SequentialLR.load_state_dict
-
-
-def _patched_sequential_load_state_dict(self, state_dict):
-    for sub_state in state_dict.get('_schedulers', []):
-        sub_state.pop('T_max', None)
-        sub_state.pop('eta_min', None)
-    _orig_sequential_load(self, state_dict)
-
-
-torch.optim.lr_scheduler.SequentialLR.load_state_dict = _patched_sequential_load_state_dict
+        for config in trainer.lr_scheduler_configs:
+            sched = config.scheduler
+            if isinstance(sched, torch.optim.lr_scheduler.SequentialLR):
+                new_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+                    opt, T_max=remaining, eta_min=lr_end)
+                for i, sub in enumerate(sched._schedulers):
+                    if isinstance(sub, torch.optim.lr_scheduler.CosineAnnealingLR):
+                        sched._schedulers[i] = new_cosine
+                        return
 
 
 def _get_dtype(s: str) -> torch.dtype:
@@ -80,6 +86,7 @@ def run_train(config_path: str) -> None:
     trainer_cfg: Dict[str, Any] = config["Trainer"]
     model_cfg: Dict[str, Any] = config["Model"]
     dataset_cfg: Dict[str, Any] = config["Dataset"]
+    resume_cfg: Dict[str, Any] = config.get("Resume", {})
 
     # --- Global settings ---
     seed: int = trainer_cfg.get("seed", 42)
@@ -151,7 +158,7 @@ def run_train(config_path: str) -> None:
 
     # --- Detect resume & build logger ---
     save_dir = trainer_cfg.get("save_dir", "./")
-    resume_ckpt: str | None = trainer_cfg.get("resume_ckpt")
+    resume_ckpt: str | None = resume_cfg.get("resume_ckpt")
     is_resume = bool(resume_ckpt)
 
     if is_resume:
@@ -185,6 +192,10 @@ def run_train(config_path: str) -> None:
         save_last=True,
         save_on_train_epoch_end=True,
     ))
+
+    lr_restart = resume_cfg.get("lr_restart")
+    if lr_restart is not None:
+        callbacks.append(_ExtendTrainingCallback(lr_restart))
 
     if not is_resume:
         if trainer_cfg.get("enable_descriptor_norm", True):

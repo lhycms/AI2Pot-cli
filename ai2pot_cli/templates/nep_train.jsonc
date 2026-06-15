@@ -31,12 +31,21 @@
         "enable_descriptor_norm": true,
 
         // Whether to shift atomic reference energies before training.
-        "enable_energy_shift": false,
+        "enable_energy_shift": false
+    },
 
-        // Resume from a checkpoint. Set to a .ckpt path to continue training;
-        // leave as null to train from scratch. Example:
-        // "resume_ckpt": "./lightning_logs/version_0/checkpoints/last.ckpt"
-        "resume_ckpt": null
+    "Resume": {
+        // Path to a checkpoint file.  Set to resume training; leave null
+        // to train from scratch.
+        // Example: "./lightning_logs/version_0/checkpoints/last.ckpt"
+        "resume_ckpt": null,
+
+        // Set to restart extended training with a fresh cosine annealing
+        // curve.  If the checkpoint LR has already reached lr_end, the LR
+        // is raised to this value first; otherwise the new cosine starts
+        // from the checkpoint's current LR.  Leave null for plain resume
+        // (scheduler restored as-is).
+        "lr_restart": null
     },
 
     "Model": {
