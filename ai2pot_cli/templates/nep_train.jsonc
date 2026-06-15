@@ -35,16 +35,14 @@
     },
 
     "Resume": {
-        // Path to a checkpoint file.  Set to resume training; leave null
-        // to train from scratch.
-        // Example: "./lightning_logs/version_0/checkpoints/last.ckpt"
+        // resume_ckpt   lr_restart   behavior
+        // ───────────   ──────────   ──────────────────────────────────
+        // null           null          train from scratch
+        // path           null          plain resume, scheduler restored as-is
+        // path           value         extended training, fresh cosine curve:
+        //                                current LR > lr_end → start from current LR
+        //                                current LR ≈ lr_end → raise to lr_restart first
         "resume_ckpt": null,
-
-        // Set to restart extended training with a fresh cosine annealing
-        // curve.  If the checkpoint LR has already reached lr_end, the LR
-        // is raised to this value first; otherwise the new cosine starts
-        // from the checkpoint's current LR.  Leave null for plain resume
-        // (scheduler restored as-is).
         "lr_restart": null
     },
 
