@@ -19,6 +19,13 @@ from ai2pot.models.potential_train_utils import EnergyShiftCallback
 # Patch CosineAnnealingLR.load_state_dict to never restore T_max / eta_min
 # from a checkpoint.  These must always reflect the current max_epochs so
 # that extended training lands at the correct position on the cosine curve.
+#
+# We patch at two levels because some PyTorch versions' SequentialLR does not
+# reliably delegate load_state_dict to sub-schedulers:
+#   1. CosineAnnealingLR.load_state_dict — strips from its own state
+#   2. SequentialLR.load_state_dict — strips from sub-scheduler states before
+#      passing them down (belt-and-suspenders).
+
 _orig_cosine_load = torch.optim.lr_scheduler.CosineAnnealingLR.load_state_dict
 
 
@@ -29,6 +36,18 @@ def _patched_cosine_load_state_dict(self, state_dict):
 
 
 torch.optim.lr_scheduler.CosineAnnealingLR.load_state_dict = _patched_cosine_load_state_dict
+
+_orig_sequential_load = torch.optim.lr_scheduler.SequentialLR.load_state_dict
+
+
+def _patched_sequential_load_state_dict(self, state_dict):
+    for sub_state in state_dict.get('_schedulers', []):
+        sub_state.pop('T_max', None)
+        sub_state.pop('eta_min', None)
+    _orig_sequential_load(self, state_dict)
+
+
+torch.optim.lr_scheduler.SequentialLR.load_state_dict = _patched_sequential_load_state_dict
 
 
 def _get_dtype(s: str) -> torch.dtype:
