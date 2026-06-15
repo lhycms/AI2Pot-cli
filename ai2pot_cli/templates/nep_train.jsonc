@@ -31,7 +31,12 @@
         "enable_descriptor_norm": true,
 
         // Whether to shift atomic reference energies before training.
-        "enable_energy_shift": false
+        "enable_energy_shift": false,
+
+        // Resume from a checkpoint. Set to a .ckpt path to continue training;
+        // leave as null to train from scratch. Example:
+        // "resume_ckpt": "./lightning_logs/version_0/checkpoints/last.ckpt"
+        "resume_ckpt": null
     },
 
     "Model": {

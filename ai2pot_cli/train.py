@@ -2,6 +2,7 @@
 
 import json5
 import os
+import re
 from typing import Any, Dict, List
 
 import torch
@@ -117,23 +118,15 @@ def run_train(config_path: str) -> None:
 
     # --- Detect resume & build logger ---
     save_dir = trainer_cfg.get("save_dir", "./")
-    logs_root = os.path.join(save_dir, "lightning_logs")
-
-    # Scan existing version dirs for a last.ckpt — if found, resume from the
-    # same version so logs and checkpoints stay together.
-    is_resume = False
-    last_ckpt = None
-    resume_version = None
-    if os.path.isdir(logs_root):
-        for ver in sorted(os.listdir(logs_root)):
-            candidate = os.path.join(logs_root, ver, "checkpoints", "last.ckpt")
-            if os.path.isfile(candidate):
-                last_ckpt = candidate
-                resume_version = int(ver.split("_")[-1])
-                is_resume = True
+    resume_ckpt: str | None = trainer_cfg.get("resume_ckpt")
+    is_resume = bool(resume_ckpt)
 
     if is_resume:
-        csv_logger = CSVLogger(save_dir=save_dir, version=resume_version)
+        # Parse version number from the checkpoint path so resumed training
+        # stays in the same lightning_logs/version_X/ directory.
+        m = re.search(r"version_(\d+)", resume_ckpt)
+        ver = int(m.group(1)) if m else None
+        csv_logger = CSVLogger(save_dir=save_dir, version=ver)
     else:
         csv_logger = CSVLogger(save_dir=save_dir)
 
@@ -173,5 +166,4 @@ def run_train(config_path: str) -> None:
     )
 
     # --- Run ---
-    ckpt_path = last_ckpt if is_resume else None
-    trainer.fit(model=lit_model, datamodule=datamodule, ckpt_path=ckpt_path)
+    trainer.fit(model=lit_model, datamodule=datamodule, ckpt_path=resume_ckpt)
