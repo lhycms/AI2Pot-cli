@@ -121,10 +121,12 @@ def run_train(config_path: str) -> None:
     resume_ckpt: str | None = trainer_cfg.get("resume_ckpt")
     is_resume = bool(resume_ckpt)
 
-    # Patch model to fix LR scheduler T_max after checkpoint restore.
-    # PyTorch's LRScheduler.load_state_dict() restores T_max from checkpoint,
-    # which overwrites the value computed from the current max_epochs.  We fix
-    # it back in on_train_start(), which Lightning calls after checkpoint load.
+    # Patch model to prevent LR scheduler T_max / eta_min from being
+    # overwritten by checkpoint restore.  PyTorch's LRScheduler.load_state_dict()
+    # restores *all* instance attributes, including CosineAnnealingLR.T_max,
+    # which was computed from the original max_epochs.  For extended training
+    # the new T_max must reflect the current max_epochs so the LR lands at the
+    # correct position on the cosine curve.
     if is_resume:
         _orig_configure_optimizers = lit_model.configure_optimizers
 
@@ -133,20 +135,18 @@ def run_train(config_path: str) -> None:
             sched = result['lr_scheduler']['scheduler']
             for sub in sched._schedulers:
                 if isinstance(sub, torch.optim.lr_scheduler.CosineAnnealingLR):
-                    lit_model._cosine_scheduler = sub
-                    lit_model._cosine_t_max = sub.T_max
-                    lit_model._cosine_eta_min = sub.eta_min
+                    _orig_load = sub.load_state_dict
+
+                    def _patched_load_state_dict(sd, _orig=_orig_load):
+                        sd.pop('T_max', None)
+                        sd.pop('eta_min', None)
+                        _orig(sd)
+
+                    sub.load_state_dict = _patched_load_state_dict
                     break
             return result
 
         lit_model.configure_optimizers = _patched_configure_optimizers
-
-        def _on_train_start():
-            if hasattr(lit_model, '_cosine_scheduler'):
-                lit_model._cosine_scheduler.T_max = lit_model._cosine_t_max
-                lit_model._cosine_scheduler.eta_min = lit_model._cosine_eta_min
-
-        lit_model.on_train_start = _on_train_start
 
     if is_resume:
         # Parse version number from the checkpoint path so resumed training
