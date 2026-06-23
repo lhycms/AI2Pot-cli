@@ -30,6 +30,7 @@ MAIN_SECTIONS = [
         (21, "Plot E/F/V Parity"),
         (22, "Plot Learning Curve"),
         (23, "Plot Descriptor Projection"),
+        (24, "Export TorchScript Model"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -121,6 +122,15 @@ def _interactive_loop():
                 continue
             from ai2pot_cli.menus.postprocessing.plot_descriptors import plot_descriptor_projection
             plot_descriptor_projection(checkpoint_path, trainset_path=trainset_path, testset_path=testset_path)
+            sys.exit(0)
+        elif choice == 24:
+            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
+            if not checkpoint_path:
+                print_warning("No checkpoint path provided.")
+                continue
+            output_path = input(" Output path [default: ./ai2pot_libtorch.pt]: ").strip() or "./ai2pot_libtorch.pt"
+            from ai2pot_cli.menus.postprocessing.serialize_model import serialize_model
+            serialize_model(checkpoint_path, output_path=output_path)
             sys.exit(0)
 
         # --- MD Utilities ---
