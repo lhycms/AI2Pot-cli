@@ -15,26 +15,26 @@ from ai2pot_cli.menu import (
 VERSION: str = "0.1.0"
 
 MAIN_SECTIONS = [
+    ("Installation", [
+        (1,  "Install AI2Pot"),
+        (2,  "Install LAMMPS with AI2Pot"),
+    ]),
     ("Preprocessing", [
-        (1,  "Convert Dataset"),
-        (2,  "Standardize ExtXYZ"),
-        (3,  "Analyse Dataset"),
-        (4,  "MTP Active Learning"),
-        (5,  "NEP Active Learning"),
+        (11, "Convert Dataset"),
+        (12, "Standardize ExtXYZ"),
+        (13, "Analyse Dataset"),
+        (14, "MTP Active Learning"),
+        (15, "NEP Active Learning"),
     ]),
     ("Potential Training Input", [
-        (11, "MTP Training Input"),
-        (12, "NEP Training Input"),
+        (21, "MTP Training Input"),
+        (22, "NEP Training Input"),
     ]),
     ("Postprocessing", [
-        (21, "Plot E/F/V Parity"),
-        (22, "Plot Learning Curve"),
-        (23, "Plot Descriptor Projection"),
-        (24, "Export TorchScript Model"),
-    ]),
-    ("Install & Setup", [
-        (41, "Install AI2Pot"),
-        (42, "Install LAMMPS + AI2Pot"),
+        (31, "Plot E/F/V Parity"),
+        (32, "Plot Learning Curve"),
+        (33, "Plot Descriptor Projection"),
+        (34, "Export TorchScript Model"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -62,10 +62,18 @@ def _interactive_loop():
             sys.exit(0)
         
         ### Sections
-        # --- Preprocessing ---
+        # --- Installation ---
         elif choice == 1:
-            print(" -> Convert Dataset (not yet implemented)\n")
+            from ai2pot_cli.menus.install.router import install_ai2pot_menu
+            install_ai2pot_menu()
         elif choice == 2:
+            from ai2pot_cli.menus.install.router import install_lammps_menu
+            install_lammps_menu()
+
+        # --- Preprocessing ---
+        elif choice == 11:
+            print(" -> Convert Dataset (not yet implemented)\n")
+        elif choice == 12:
             extxyz_path = input(" ExtXYZ file path: ").strip()
             if not extxyz_path:
                 print_warning("No file path provided.")
@@ -74,7 +82,7 @@ def _interactive_loop():
             from ai2pot_cli.menus.preprocessing.standardize_extxyz import standardize_extxyz
             standardize_extxyz(extxyz_path, None if not out_path else out_path)
             sys.exit(0)
-        elif choice == 3:
+        elif choice == 13:
             extxyz_path = input(" ExtXYZ file path: ").strip()
             if not extxyz_path:
                 print_warning("No file path provided.")
@@ -84,23 +92,23 @@ def _interactive_loop():
             from ai2pot_cli.menus.preprocessing.analyse_nblist import analyse_dataset
             analyse_dataset(extxyz_path, rcut)
             sys.exit(0)
-        elif choice == 4:
+        elif choice == 14:
             print(" -> MTP Active Learning (not yet implemented)\n")
-        elif choice == 5:
+        elif choice == 15:
             print(" -> NEP Active Learning (not yet implemented)\n")
 
         # --- Potential Training Input ---
-        elif choice == 11:
+        elif choice == 21:
             from ai2pot_cli.menus.potential_train.mtp_train_input import generate_mtp_input
             generate_mtp_input()
             sys.exit(0)
-        elif choice == 12:
+        elif choice == 22:
             from ai2pot_cli.menus.potential_train.nep_train_input import generate_nep_input
             generate_nep_input()
             sys.exit(0)
 
         # --- Postprocessing ---
-        elif choice == 21:
+        elif choice == 31:
             checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
             if not checkpoint_path:
                 print_warning("No checkpoint path provided.")
@@ -113,12 +121,12 @@ def _interactive_loop():
             from ai2pot_cli.menus.postprocessing.plot_parity import plot_parity
             plot_parity(checkpoint_path, trainset_path=trainset_path, testset_path=testset_path)
             sys.exit(0)
-        elif choice == 22:
+        elif choice == 32:
             csv_path = input(" Metrics CSV path [metrics.csv]: ").strip() or "metrics.csv"
             from ai2pot_cli.menus.postprocessing.plot_trainlog import plot_trainlog
             plot_trainlog(csv_path)
             sys.exit(0)
-        elif choice == 23:
+        elif choice == 33:
             checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
             if not checkpoint_path:
                 print_warning("No checkpoint path provided.")
@@ -131,7 +139,7 @@ def _interactive_loop():
             from ai2pot_cli.menus.postprocessing.plot_descriptors import plot_descriptor_projection
             plot_descriptor_projection(checkpoint_path, trainset_path=trainset_path, testset_path=testset_path)
             sys.exit(0)
-        elif choice == 24:
+        elif choice == 34:
             checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
             if not checkpoint_path:
                 print_warning("No checkpoint path provided.")
@@ -140,14 +148,6 @@ def _interactive_loop():
             from ai2pot_cli.menus.postprocessing.serialize_model import serialize_model
             serialize_model(checkpoint_path, output_path=output_path)
             sys.exit(0)
-
-        # --- Install & Setup ---
-        elif choice == 41:
-            from ai2pot_cli.menus.install.router import install_ai2pot_menu
-            install_ai2pot_menu()
-        elif choice == 42:
-            from ai2pot_cli.menus.install.router import install_lammps_menu
-            install_lammps_menu()
 
         # --- MD Utilities ---
         elif choice == 91:

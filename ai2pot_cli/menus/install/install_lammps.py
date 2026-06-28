@@ -1,4 +1,4 @@
-"""Step-by-step LAMMPS + AI2Pot plugin installation."""
+"""Step-by-step LAMMPS with AI2Pot plugin installation."""
 
 import os
 import sys
@@ -11,11 +11,11 @@ from ai2pot_cli.menu import (
 
 from ai2pot_cli.commands import register
 
-register(421, "ai2pot_cli.menus.install.install_lammps", "_step421_locate_lammps")
-register(422, "ai2pot_cli.menus.install.install_lammps", "_step422_integrate_plugin")
-register(423, "ai2pot_cli.menus.install.install_lammps", "_step423_cmake_configure")
-register(424, "ai2pot_cli.menus.install.install_lammps", "_step424_build_lammps")
-register(425, "ai2pot_cli.menus.install.install_lammps", "_step425_verify")
+register(201, "ai2pot_cli.menus.install.install_lammps", "_step201_locate_lammps")
+register(202, "ai2pot_cli.menus.install.install_lammps", "_step202_integrate_plugin")
+register(203, "ai2pot_cli.menus.install.install_lammps", "_step203_cmake_configure")
+register(204, "ai2pot_cli.menus.install.install_lammps", "_step204_build_lammps")
+register(205, "ai2pot_cli.menus.install.install_lammps", "_step205_verify")
 
 # ── session state ───────────────────────────────────────────────────
 _session = {
@@ -28,9 +28,9 @@ _session = {
 }
 
 
-def _step421_locate_lammps():
-    """Step 421: Locate LAMMPS source code."""
-    print_section("Step 421: Locate LAMMPS Source")
+def _step201_locate_lammps():
+    """Step 201: Locate LAMMPS source code."""
+    print_section("Step 201: Locate LAMMPS Source")
 
     prev = _session.get("lammps_dir", "")
     lammps_dir = input(f" LAMMPS source path [{prev}]: ").strip() or prev
@@ -50,13 +50,13 @@ def _step421_locate_lammps():
     print()
 
 
-def _step422_integrate_plugin():
-    """Step 422: Integrate AI2Pot plugin into LAMMPS."""
-    print_section("Step 422: Integrate AI2Pot Plugin")
+def _step202_integrate_plugin():
+    """Step 202: Integrate AI2Pot plugin into LAMMPS."""
+    print_section("Step 202: Integrate AI2Pot Plugin")
 
     lammps = _session.get("lammps_dir")
     if not lammps:
-        print_warning("LAMMPS source not set. Run Step 421 first.")
+        print_warning("LAMMPS source not set. Run Step 201 first.")
         return
     print_kv("LAMMPS source", lammps)
 
@@ -75,13 +75,13 @@ def _step422_integrate_plugin():
     print()
 
 
-def _step423_cmake_configure():
-    """Step 423: Run CMake configure."""
-    print_section("Step 423: CMake Configure")
+def _step203_cmake_configure():
+    """Step 203: Run CMake configure."""
+    print_section("Step 203: CMake Configure")
 
     lammps = _session.get("lammps_dir")
     if not lammps:
-        print_warning("LAMMPS source not set. Run Step 421 first.")
+        print_warning("LAMMPS source not set. Run Step 201 first.")
         return
 
     build_dir = _session.get("build_dir", os.path.join(lammps, "build"))
@@ -108,13 +108,13 @@ def _step423_cmake_configure():
     print()
 
 
-def _step424_build_lammps():
-    """Step 424: Build LAMMPS."""
-    print_section("Step 424: Build LAMMPS")
+def _step204_build_lammps():
+    """Step 204: Build LAMMPS."""
+    print_section("Step 204: Build LAMMPS")
 
     build_dir = _session.get("build_dir")
     if not build_dir:
-        print_warning("Build directory not set. Run Step 423 first.")
+        print_warning("Build directory not set. Run Step 203 first.")
         return
 
     nproc = os.cpu_count() or 4
@@ -135,13 +135,13 @@ def _step424_build_lammps():
     print()
 
 
-def _step425_verify():
-    """Step 425: Verify LAMMPS installation."""
-    print_section("Step 425: Verify LAMMPS")
+def _step205_verify():
+    """Step 205: Verify LAMMPS installation."""
+    print_section("Step 205: Verify LAMMPS")
 
     lmp = _session.get("lmp_binary")
     if not lmp or not os.path.isfile(lmp):
-        print_warning("LAMMPS binary not found. Run Step 424 first.")
+        print_warning("LAMMPS binary not found. Run Step 204 first.")
         return
 
     # TODO: run `lmp -h` to verify
@@ -154,24 +154,24 @@ def _step425_verify():
 # ── step menu ───────────────────────────────────────────────────────
 
 _STEPS = [
-    (421, "Locate LAMMPS Source",      "Set path to LAMMPS source directory"),
-    (422, "Integrate AI2Pot Plugin",   "Copy/link AI2Pot plugin into LAMMPS"),
-    (423, "CMake Configure",           "cmake -S ... -B ..."),
-    (424, "Build LAMMPS",              "cmake --build ... -j N"),
-    (425, "Verify LAMMPS",             "Check lmp binary works"),
+    (201, "Locate LAMMPS Source",      "Set path to LAMMPS source directory"),
+    (202, "Integrate AI2Pot Plugin",   "Copy/link AI2Pot plugin into LAMMPS"),
+    (203, "CMake Configure",           "cmake -S ... -B ..."),
+    (204, "Build LAMMPS",              "cmake --build ... -j N"),
+    (205, "Verify LAMMPS",             "Check lmp binary works"),
 ]
 
 _STEP_FUNCS = {
-    421: _step421_locate_lammps,
-    422: _step422_integrate_plugin,
-    423: _step423_cmake_configure,
-    424: _step424_build_lammps,
-    425: _step425_verify,
+    201: _step201_locate_lammps,
+    202: _step202_integrate_plugin,
+    203: _step203_cmake_configure,
+    204: _step204_build_lammps,
+    205: _step205_verify,
 }
 
 
 def lammps_step_menu():
-    """Step-by-step LAMMPS + AI2Pot installation sub-menu."""
+    """Step-by-step LAMMPS with AI2Pot installation sub-menu."""
     while True:
         # show session summary
         if any(_session.values()):
@@ -184,7 +184,7 @@ def lammps_step_menu():
                 print_kv("Build dir", _session["build_dir"])
             print_sep()
 
-        show_numbered_menu("Install LAMMPS + AI2Pot", _STEPS)
+        show_numbered_menu("Install LAMMPS with AI2Pot", _STEPS)
         choice = get_choice()
         from ai2pot_cli.commands import dispatch
         if dispatch(choice):

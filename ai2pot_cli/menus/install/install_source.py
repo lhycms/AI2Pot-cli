@@ -1,8 +1,8 @@
 """Step-by-step AI2Pot source installation.
 
-4121) Configure CUDA
-4122) Install PyTorch
-4123) Install AI2Pot
+1021) Configure CUDA
+1022) Install PyTorch
+1023) Install AI2Pot
 """
 
 import os
@@ -18,10 +18,10 @@ from ai2pot_cli.menu import (
 
 from ai2pot_cli.commands import register
 
-register(412, "ai2pot_cli.menus.install.install_source", "source_install_menu")
-register(4121, "ai2pot_cli.menus.install.install_source", "_step4121_configure_cuda")
-register(4122, "ai2pot_cli.menus.install.install_source", "_step4122_install_pytorch")
-register(4123, "ai2pot_cli.menus.install.install_source", "_step4123_install_ai2pot")
+register(102, "ai2pot_cli.menus.install.install_source", "source_install_menu")
+register(1021, "ai2pot_cli.menus.install.install_source", "_step1021_configure_cuda")
+register(1022, "ai2pot_cli.menus.install.install_source", "_step1022_install_pytorch")
+register(1023, "ai2pot_cli.menus.install.install_source", "_step1023_install_ai2pot")
 
 # ── constants ───────────────────────────────────────────────────────
 DEFAULT_ENV = "ai2pot_env"
@@ -92,10 +92,10 @@ def _exit_with_next(step, title):
     sys.exit(0)
 
 
-def _exit4122_with_reminder():
-    """After 4122, direct user to the next step."""
+def _exit1022_with_reminder():
+    """After 1022, direct user to the next step."""
     print()
-    print_kv("Next step", "4123) Install AI2Pot")
+    print_kv("Next step", "1023) Install AI2Pot")
     print_sep()
     print()
     sys.exit(0)
@@ -109,20 +109,20 @@ def _exit_done():
 
 
 def _exit_with_usage():
-    """Print usage hint after all 412 steps are done, then exit."""
+    """Print usage hint after all source install steps are done, then exit."""
     env_name = _session.get("env_name") or DEFAULT_ENV
 
     print()
-    print_success("All 412 steps completed!")
+    print_success("All source install steps completed!")
     print()
     print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. python -c \"import ai2pot; print(ai2pot.__version__)\"\n{' '*22}3. pip install ai2pot-cli")
     _exit_done()
 
 
-# ── step 4121: Configure CUDA ───────────────────────────────────────
+# ── step 1021: Configure CUDA ───────────────────────────────────────
 
-def _step4121_configure_cuda():
-    print_section("Step 4121: Configure CUDA")
+def _step1021_configure_cuda():
+    print_section("Step 1021: Configure CUDA")
 
     cuda_home = os.environ.get("CUDA_HOME", "")
     nvcc_path = shutil.which("nvcc")
@@ -133,7 +133,7 @@ def _step4121_configure_cuda():
 
     if cuda_home and nvcc_path:
         print_success("CUDA already configured.")
-        _exit_with_next(4122, "Install PyTorch")
+        _exit_with_next(1022, "Install PyTorch")
 
     if not cuda_home:
         cuda_home = input(f"  {'CUDA toolkit path':<18} [/usr/local/cuda]: ").strip() or "/usr/local/cuda"
@@ -152,17 +152,17 @@ def _step4121_configure_cuda():
     done = input(" Configured? (y/n) [n]: ").strip()
     if done.lower() == 'y':
         print_success("CUDA configured.")
-        _exit_with_next(4122, "Install PyTorch")
+        _exit_with_next(1022, "Install PyTorch")
 
     print_warning("Configure CUDA first, then re-run this step.")
     print()
     sys.exit(0)
 
 
-# ── step 4122: Install PyTorch ─────────────────────────────────────
+# ── step 1022: Install PyTorch ─────────────────────────────────────
 
-def _step4122_install_pytorch():
-    print_section("Step 4122: Install PyTorch")
+def _step1022_install_pytorch():
+    print_section("Step 1022: Install PyTorch")
 
     # --- 2a. Check / create environment ---
     env_name = _session.get("env_name") or DEFAULT_ENV
@@ -206,7 +206,7 @@ def _step4122_install_pytorch():
         print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
         print()
         print_success("PyTorch already installed.")
-        _exit4122_with_reminder()
+        _exit1022_with_reminder()
 
     # --- 2c. Install PyTorch ---
     print_kv("Options", "cpu / cu118 / cu121 / cu124")
@@ -232,13 +232,13 @@ def _step4122_install_pytorch():
     print_section("PyTorch Installed Successfully")
     print_kv("PyTorch", lines[0] if lines else "unknown")
     print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
-    _exit4122_with_reminder()
+    _exit1022_with_reminder()
 
 
-# ── step 4123: Install AI2Pot ──────────────────────────────────────
+# ── step 1023: Install AI2Pot ──────────────────────────────────────
 
-def _step4123_install_ai2pot():
-    print_section("Step 4123: Install AI2Pot")
+def _step1023_install_ai2pot():
+    print_section("Step 1023: Install AI2Pot")
 
     # ensure env name is set
     env_name = _session.get("env_name") or DEFAULT_ENV
@@ -333,15 +333,15 @@ def _step4123_install_ai2pot():
 # ── step menu ───────────────────────────────────────────────────────
 
 _STEPS = [
-    (4121, "Configure CUDA",   "Set CUDA_HOME, PATH, LD_LIBRARY_PATH"),
-    (4122, "Install PyTorch",  "Create conda env + pip install torch==2.4.0"),
-    (4123, "Install AI2Pot",   "Install build deps + pip install -v --no-build-isolation --no-deps ."),
+    (1021, "Configure CUDA",   "Set CUDA_HOME, PATH, LD_LIBRARY_PATH"),
+    (1022, "Install PyTorch",  "Create conda env + pip install torch==2.4.0"),
+    (1023, "Install AI2Pot",   "Install build deps + pip install -v --no-build-isolation --no-deps ."),
 ]
 
 _STEP_FUNCS = {
-    4121: _step4121_configure_cuda,
-    4122: _step4122_install_pytorch,
-    4123: _step4123_install_ai2pot,
+    1021: _step1021_configure_cuda,
+    1022: _step1022_install_pytorch,
+    1023: _step1023_install_ai2pot,
 }
 
 
