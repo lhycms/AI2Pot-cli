@@ -243,6 +243,7 @@ def _step4123_install_ai2pot():
 
     # --- 3a. Check if ai2pot already installed ---
     py = _detect_env_python()
+    print_kv("Python", py)
     result = subprocess.run(
         f"{py} -c \"import ai2pot; print(ai2pot.__version__)\"",
         shell=True, capture_output=True, text=True,
