@@ -108,7 +108,7 @@ def _exit_with_usage():
     print()
     print_success("All 412 steps completed!")
     print()
-    print_kv("Next step", f"conda activate {env_name}")
+    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. pip install ai2pot-cli\n{' '*22}3. python -c \"import ai2pot; print(ai2pot.__version__)\"")
     _exit_done()
 
 
@@ -129,7 +129,7 @@ def _step4121_configure_cuda():
         _exit_with_next(4122, "Install PyTorch")
 
     if not cuda_home:
-        cuda_home = input(" CUDA toolkit path [/usr/local/cuda]: ").strip() or "/usr/local/cuda"
+        cuda_home = input(f"  {'CUDA toolkit path':<18} [/usr/local/cuda]: ").strip() or "/usr/local/cuda"
         print()
         print(" Set the following in your shell:")
         print()
@@ -175,7 +175,7 @@ def _step4122_install_pytorch():
             break
 
     if not env_exists:
-        py_ver = input(" Python version [3.11.13]: ").strip() or "3.11.13"
+        py_ver = input(f"  {'Python version':<18} [3.11.13]: ").strip() or "3.11.13"
         print()
         if not _run(f"conda create -n {env_name} python={py_ver} -y"):
             sys.exit(1)
@@ -203,7 +203,7 @@ def _step4122_install_pytorch():
 
     # --- 2c. Install PyTorch ---
     print_kv("Options", "cpu / cu118 / cu121 / cu124")
-    cuda = input(" CUDA version [cpu]: ").strip() or "cpu"
+    cuda = input(f"  {'CUDA version':<18} [cpu]: ").strip() or "cpu"
     print()
 
     index_url = f"https://download.pytorch.org/whl/{cuda}" if cuda != "cpu" else "https://download.pytorch.org/whl/cpu"
@@ -274,10 +274,10 @@ def _step4123_install_ai2pot():
     # --- 3c. Build AI2Pot ---
     print_section("Building AI2Pot")
 
-    nproc = input(" CMAKE_BUILD_PARALLEL_LEVEL [16]: ").strip() or "16"
-    cc = input(" CC (empty for default) []: ").strip()
-    cxx = input(" CXX (empty for default) []: ").strip()
-    hostcxx = input(" CUDAHOSTCXX (empty for default) []: ").strip()
+    nproc = input(f"  {'CMAKE_BUILD_PARALLEL_LEVEL':<18} [16]: ").strip() or "16"
+    cc = input(f"  {'CC':<18} []: ").strip()
+    cxx = input(f"  {'CXX':<18} []: ").strip()
+    hostcxx = input(f"  {'CUDAHOSTCXX':<18} []: ").strip()
 
     build_env = os.environ.copy()
     build_env["CMAKE_BUILD_PARALLEL_LEVEL"] = nproc
