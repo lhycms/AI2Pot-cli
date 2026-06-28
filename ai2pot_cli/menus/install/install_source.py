@@ -115,7 +115,7 @@ def _exit_with_usage():
     print()
     print_success("All 412 steps completed!")
     print()
-    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. pip install ai2pot-cli\n{' '*22}3. python -c \"import ai2pot; print(ai2pot.__version__)\"")
+    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. python -c \"import ai2pot; print(ai2pot.__version__)\"\n{' '*22}3. pip install ai2pot-cli")
     _exit_done()
 
 
