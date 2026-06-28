@@ -76,9 +76,17 @@ def _pip(cmd, cwd=None):
 
 
 def _exit_with_next(step, title):
-    """Print next-step hint and exit."""
+    """Print next-step hint, separator, and exit."""
     print()
     print_kv("Next step", f"{step}) {title}")
+    print_sep()
+    print()
+    sys.exit(0)
+
+
+def _exit_done():
+    """Print final separator and exit."""
+    print_sep()
     print()
     sys.exit(0)
 
@@ -86,25 +94,23 @@ def _exit_with_next(step, title):
 # ── step 4121: Configure CUDA ───────────────────────────────────────
 
 def _step4121_configure_cuda():
-    """Step 4121: Configure CUDA environment variables."""
     print_section("Step 4121: Configure CUDA")
 
     cuda_home = os.environ.get("CUDA_HOME", "")
     nvcc_path = shutil.which("nvcc")
 
-    # already configured — skip silently
+    print_kv("CUDA_HOME", cuda_home or "(not set)")
+    print_kv("nvcc", nvcc_path or "(not found)")
+    print()
+
     if cuda_home and nvcc_path:
-        print_kv("CUDA_HOME", cuda_home)
-        print_kv("nvcc", nvcc_path)
-        print()
-        print_success("Step 4121 already completed.")
+        print_success("CUDA already configured.")
         _exit_with_next(4122, "Install PyTorch")
 
-    # guide user to configure
     if not cuda_home:
         cuda_home = input(" CUDA toolkit path [/usr/local/cuda]: ").strip() or "/usr/local/cuda"
         print()
-        print(" Set the following in your shell and re-run this step:")
+        print(" Set the following in your shell:")
         print()
         print(f"  export CUDA_HOME={cuda_home}")
         print(f'  export PATH="${{CUDA_HOME}}/bin:${{PATH}}"')
@@ -112,31 +118,30 @@ def _step4121_configure_cuda():
         print()
 
     if not nvcc_path:
-        print(" Then verify the CUDA compiler is accessible:")
-        print("  nvcc --version")
+        print(" Verify: nvcc --version")
         print()
 
-    done = input(" Have you configured CUDA as above? (y/n) [n]: ").strip()
+    done = input(" Configured? (y/n) [n]: ").strip()
     if done.lower() == 'y':
         print_success("CUDA configured.")
         _exit_with_next(4122, "Install PyTorch")
-    else:
-        print_warning("Please configure CUDA before proceeding.")
-        print()
-        sys.exit(0)
+
+    print_warning("Configure CUDA first, then re-run this step.")
+    print()
+    sys.exit(0)
 
 
 # ── step 4122: Install PyTorch ─────────────────────────────────────
 
 def _step4122_install_pytorch():
-    """Step 4122: Create environment and install PyTorch."""
     print_section("Step 4122: Install PyTorch")
 
-    # --- 2a. Check / create Python environment ---
+    # --- 2a. Check / create environment ---
     env_name = _session.get("env_name")
     if not env_name:
         env_name = input(" Environment name [ai2pot]: ").strip() or "ai2pot"
         _session["env_name"] = env_name
+    print_kv("Environment", env_name)
 
     env_exists = False
     for base in [
@@ -154,57 +159,59 @@ def _step4122_install_pytorch():
         py_ver = input(" Python version [3.11.13]: ").strip() or "3.11.13"
         print()
         if not _run(f"conda create -n {env_name} python={py_ver} -y"):
-            print_error("Failed to create conda environment.")
             sys.exit(1)
         _session.pop("env_python", None)
         print_success(f"Environment '{env_name}' created.")
         print()
     else:
-        print_kv("Environment", f"'{env_name}' already exists")
+        print_kv("Status", "already exists")
         print()
 
-    # --- 2b. Check if torch already installed ---
+    # --- 2b. Check if torch is installed ---
     py = _detect_env_python()
-    check_cmd = f"{py} -c \"import torch; print(torch.__version__); print('CUDA', torch.version.cuda if torch.cuda.is_available() else 'CPU')\""
-    result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        f"{py} -c \"import torch; print(torch.__version__); print(torch.version.cuda if torch.cuda.is_available() else 'CPU')\"",
+        shell=True, capture_output=True, text=True,
+    )
 
     if result.returncode == 0:
-        print(result.stdout.strip())
+        lines = result.stdout.strip().splitlines()
+        print_kv("PyTorch", lines[0] if lines else "unknown")
+        print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
         print()
-        print_success("Step 4122 already completed.")
+        print_success("PyTorch already installed.")
         _exit_with_next(4123, "Install AI2Pot")
 
     # --- 2c. Install PyTorch ---
-    print()
     print_kv("Options", "cpu / cu118 / cu121 / cu124")
     cuda = input(" CUDA version [cpu]: ").strip() or "cpu"
+    print()
 
     index_url = f"https://download.pytorch.org/whl/{cuda}" if cuda != "cpu" else "https://download.pytorch.org/whl/cpu"
 
     if not _pip(f"install torch==2.4.0 --index-url {index_url}"):
-        print_error("Failed to install PyTorch.")
         sys.exit(1)
 
     # --- 2d. Verify ---
-    print_section("Verifying PyTorch Installation")
-    verify_cmd = f"{_detect_env_python()} -c \"import torch; print('torch', torch.__version__); print('CUDA', torch.version.cuda if torch.cuda.is_available() else 'CPU')\""
-    result = subprocess.run(verify_cmd, shell=True, capture_output=True, text=True)
-    if result.returncode == 0:
-        print(result.stdout.strip())
-        print()
-        print_success("PyTorch installed and verified.")
-    else:
+    result = subprocess.run(
+        f"{_detect_env_python()} -c \"import torch; print(torch.__version__); print(torch.version.cuda if torch.cuda.is_available() else 'CPU')\"",
+        shell=True, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
         print_error("PyTorch verification failed.")
         print(result.stderr)
         sys.exit(1)
 
+    lines = result.stdout.strip().splitlines()
+    print_section("PyTorch Installed Successfully")
+    print_kv("PyTorch", lines[0] if lines else "unknown")
+    print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
     _exit_with_next(4123, "Install AI2Pot")
 
 
 # ── step 4123: Install AI2Pot ──────────────────────────────────────
 
 def _step4123_install_ai2pot():
-    """Step 4123: Build and install AI2Pot from source."""
     print_section("Step 4123: Install AI2Pot")
 
     src = _session["source_dir"]
@@ -213,24 +220,23 @@ def _step4123_install_ai2pot():
 
     # --- 3a. Check if ai2pot already installed ---
     py = _detect_env_python()
-    check_cmd = f"{py} -c \"import ai2pot; print(ai2pot.__version__)\""
-    result = subprocess.run(check_cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(
+        f"{py} -c \"import ai2pot; print(ai2pot.__version__)\"",
+        shell=True, capture_output=True, text=True,
+    )
     if result.returncode == 0:
         print_kv("AI2Pot", result.stdout.strip())
         print()
-        print_success("Step 4123 already completed.")
+        print_success("AI2Pot already installed.")
         print()
         print_kv("Next", "42) Install LAMMPS + AI2Pot")
-        print()
-        sys.exit(0)
+        _exit_done()
 
-    # --- 3b. Install build backend ---
+    # --- 3b. Install build dependencies ---
     print_section("Installing Build Dependencies")
-    print()
 
     if not _pip("install -U pip setuptools wheel"):
         sys.exit(1)
-
     if not _pip("install scikit-build-core==0.12.2 cmake==4.3.2 pybind11==2.11.1"):
         sys.exit(1)
 
@@ -241,15 +247,16 @@ def _step4123_install_ai2pot():
     else:
         print_warning(f"requirements-lock.txt not found in {src}")
 
-    # --- 3c. Build AI2Pot ---
-    print_section("Building AI2Pot")
+    print_success("Build dependencies installed.")
     print()
 
-    nproc = input(" CMAKE_BUILD_PARALLEL_LEVEL [16]: ").strip() or "16"
+    # --- 3c. Build AI2Pot ---
+    print_section("Building AI2Pot")
 
-    cc = input(" CC (leave blank for system default) []: ").strip()
-    cxx = input(" CXX (leave blank for system default) []: ").strip()
-    hostcxx = input(" CUDAHOSTCXX (leave blank for system default) []: ").strip()
+    nproc = input(" CMAKE_BUILD_PARALLEL_LEVEL [16]: ").strip() or "16"
+    cc = input(" CC (empty for default) []: ").strip()
+    cxx = input(" CXX (empty for default) []: ").strip()
+    hostcxx = input(" CUDAHOSTCXX (empty for default) []: ").strip()
 
     build_env = os.environ.copy()
     build_env["CMAKE_BUILD_PARALLEL_LEVEL"] = nproc
@@ -260,8 +267,6 @@ def _step4123_install_ai2pot():
     if hostcxx:
         build_env["CUDAHOSTCXX"] = hostcxx
 
-    pip_args = "-v --no-build-isolation --no-deps ."
-
     print()
     print_kv("CMAKE_BUILD_PARALLEL_LEVEL", nproc)
     if cc:
@@ -270,31 +275,30 @@ def _step4123_install_ai2pot():
         print_kv("CXX", cxx)
     if hostcxx:
         print_kv("CUDAHOSTCXX", hostcxx)
-    print_kv("pip args", pip_args)
+    print()
 
-    if not _run(f"{_detect_env_python()} -m pip install {pip_args}", cwd=src, env=build_env):
-        print_error("AI2Pot build failed.")
+    if not _run(
+        f"{_detect_env_python()} -m pip install -v --no-build-isolation --no-deps .",
+        cwd=src, env=build_env,
+    ):
         sys.exit(1)
 
     # --- 3d. Verify ---
-    print_section("Verifying AI2Pot Installation")
-    verify_cmd = f"{_detect_env_python()} -c \"import ai2pot; print('AI2Pot', ai2pot.__version__)\""
-    result = subprocess.run(verify_cmd, shell=True, capture_output=True, text=True)
-    if result.returncode == 0:
-        print(result.stdout.strip())
-        print()
-        print_success("AI2Pot installed successfully.")
-    else:
+    result = subprocess.run(
+        f"{_detect_env_python()} -c \"import ai2pot; print(ai2pot.__version__)\"",
+        shell=True, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
         print_error("AI2Pot verification failed.")
         print(result.stderr)
         sys.exit(1)
 
-    print_sep()
-    print_success("All steps completed! AI2Pot is ready.")
+    print_section("AI2Pot Installed Successfully")
+    print_kv("AI2Pot", result.stdout.strip())
+    print_kv("Source", src)
     print()
     print_kv("Next", "42) Install LAMMPS + AI2Pot")
-    print()
-    sys.exit(0)
+    _exit_done()
 
 
 # ── step menu ───────────────────────────────────────────────────────
