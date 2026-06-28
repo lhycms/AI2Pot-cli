@@ -109,7 +109,11 @@ def _step201_setup_lammps():
             print_kv("AI2Pot interface", os.path.join(ai2pot_src, "interface", "lammps"))
             print()
             print_success("Step 201 already completed.")
-            _exit_with_next(202, "Build LAMMPS")
+            print()
+            print_kv("Next step", f"1. cd {lammps_dir}\n{' '*22}2. 202) Build LAMMPS")
+            print_sep()
+            print()
+            sys.exit(0)
 
     # --- 201a. Locate LAMMPS ---
     prev = lammps_dir or ""
@@ -144,7 +148,11 @@ def _step201_setup_lammps():
     print_section("LAMMPS Source Setup Complete")
     print_kv("LAMMPS source", lammps_dir)
     print_kv("Interface", src_dir)
-    _exit_with_next(202, "Build LAMMPS")
+    print()
+    print_kv("Next step", f"1. cd {lammps_dir}\n{' '*22}2. 202) Build LAMMPS")
+    print_sep()
+    print()
+    sys.exit(0)
 
 
 # ── step 202: Build LAMMPS ──────────────────────────────────────────
