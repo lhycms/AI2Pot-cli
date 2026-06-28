@@ -91,6 +91,17 @@ def _exit_done():
     sys.exit(0)
 
 
+def _exit_with_usage():
+    """Print usage hint after all 412 steps are done, then exit."""
+    env_name = _session.get("env_name", "ai2pot")
+    print()
+    print_success("All 412 steps completed!")
+    print()
+    print_kv("Usage", f"conda activate {env_name}")
+    print_kv("Verify", "python -c \"import ai2pot; print(ai2pot.__version__)\"")
+    _exit_done()
+
+
 # ── step 4121: Configure CUDA ───────────────────────────────────────
 
 def _step4121_configure_cuda():
@@ -228,9 +239,7 @@ def _step4123_install_ai2pot():
         print_kv("AI2Pot", result.stdout.strip())
         print()
         print_success("AI2Pot already installed.")
-        print()
-        print_kv("Next", "42) Install LAMMPS + AI2Pot")
-        _exit_done()
+        _exit_with_usage()
 
     # --- 3b. Install build dependencies ---
     print_section("Installing Build Dependencies")
@@ -296,9 +305,7 @@ def _step4123_install_ai2pot():
     print_section("AI2Pot Installed Successfully")
     print_kv("AI2Pot", result.stdout.strip())
     print_kv("Source", src)
-    print()
-    print_kv("Next", "42) Install LAMMPS + AI2Pot")
-    _exit_done()
+    _exit_with_usage()
 
 
 # ── step menu ───────────────────────────────────────────────────────
