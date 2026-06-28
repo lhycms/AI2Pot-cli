@@ -104,7 +104,7 @@ def _step201_setup_lammps():
     ai2pot_src = _session.get("ai2pot_src", os.getcwd())
     if lammps_dir:
         dst_src = os.path.join(lammps_dir, "src", "AI2POT")
-        if os.path.isfile(dst_src):
+        if os.path.isdir(dst_src):
             print_kv("LAMMPS source", lammps_dir)
             print_kv("AI2Pot interface", os.path.join(ai2pot_src, "interface", "lammps"))
             print()
@@ -131,7 +131,7 @@ def _step201_setup_lammps():
         sys.exit(1)
 
     dst_src = os.path.join(lammps_dir, "src")
-    if not _run(f"cp {src_dir}/AI2POT {dst_src}/"):
+    if not _run(f"cp -r {src_dir}/AI2POT {dst_src}/"):
         sys.exit(1)
 
     makefile_src = os.path.join(src_dir, "Makefile.mpi")
