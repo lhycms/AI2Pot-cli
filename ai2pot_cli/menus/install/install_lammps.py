@@ -268,18 +268,60 @@ def _step203_verify():
     print_kv("Binary", lmp)
     print()
 
+    # --- 203a. Basic smoke test ---
     result = subprocess.run(f"{lmp} -h", shell=True, capture_output=True, text=True)
     if result.returncode != 0:
-        print_error("LAMMPS binary may not be working correctly.")
+        print_error("LAMMPS binary failed to run.")
         print(result.stderr)
         sys.exit(1)
 
     first_line = result.stdout.strip().split("\n")[0] if result.stdout else ""
-    print_success("LAMMPS binary is working.")
+    print_success("LAMMPS binary is executable.")
     if first_line:
         print_kv("Info", first_line[:60])
-
     print()
+
+    # --- 203b. Verify torch linking ---
+    result = subprocess.run(f"ldd {lmp} 2>/dev/null | grep -i torch", shell=True, capture_output=True, text=True)
+    if result.returncode != 0 or not result.stdout.strip():
+        print_error("LAMMPS binary is not linked against PyTorch libraries.")
+        print_error("Check that TORCH_ROOT was set correctly during build.")
+        sys.exit(1)
+
+    torch_lines = result.stdout.strip().split("\n")
+    print_success("PyTorch linking verified.")
+    for line in torch_lines[:4]:
+        parts = line.strip().split("=>")
+        if len(parts) >= 2:
+            print_kv(parts[0].strip(), parts[1].strip()[:52])
+    print()
+
+    # --- 203c. Verify NEP linking ---
+    result = subprocess.run(f"ldd {lmp} 2>/dev/null | grep nep", shell=True, capture_output=True, text=True)
+    if result.returncode == 0 and result.stdout.strip():
+        nep_lines = result.stdout.strip().split("\n")
+        print_success("NEP linking verified.")
+        for line in nep_lines[:4]:
+            parts = line.strip().split("=>")
+            if len(parts) >= 2:
+                print_kv(parts[0].strip(), parts[1].strip()[:52])
+    else:
+        print_warning("NEP libraries not detected. AI2POT NEP may not work.")
+    print()
+
+    # --- 203d. Verify MTP linking ---
+    result = subprocess.run(f"ldd {lmp} 2>/dev/null | grep mtp", shell=True, capture_output=True, text=True)
+    if result.returncode == 0 and result.stdout.strip():
+        mtp_lines = result.stdout.strip().split("\n")
+        print_success("MTP linking verified.")
+        for line in mtp_lines[:4]:
+            parts = line.strip().split("=>")
+            if len(parts) >= 2:
+                print_kv(parts[0].strip(), parts[1].strip()[:52])
+    else:
+        print_warning("MTP libraries not detected. AI2POT MTP may not work.")
+    print()
+
     print_success("All LAMMPS steps completed!")
     _exit_done()
 
