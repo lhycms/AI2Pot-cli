@@ -345,17 +345,30 @@ _STEP_FUNCS = {
 }
 
 
+def _require_ai2pot_source():
+    """Ensure we are inside an AI2Pot source directory. Returns False if user declines."""
+    if os.path.isfile(os.path.join(os.getcwd(), "pyproject.toml")):
+        return True
+    print_warning("Not inside an AI2Pot source directory (no pyproject.toml found).")
+    path = input(f"  {'AI2Pot source path':<18}: ").strip()
+    if not path:
+        return False
+    path = os.path.abspath(path)
+    if not os.path.isfile(os.path.join(path, "pyproject.toml")):
+        print_error(f"No pyproject.toml found in: {path}")
+        return False
+    os.chdir(path)
+    print_success(f"Entered: {path}")
+    print()
+    return True
+
+
 def source_install_menu():
-    """Step-by-step source install sub-menu.
+    """Step-by-step source install sub-menu."""
+    if not _require_ai2pot_source():
+        return
 
-    User is expected to already be inside the AI2Pot source directory.
-    """
     _session["source_dir"] = os.getcwd()
-
-    if not os.path.isfile(os.path.join(_session["source_dir"], "pyproject.toml")):
-        print_warning("No pyproject.toml found in current directory.")
-        print_warning(f"Make sure you are inside the AI2Pot source tree: {_session['source_dir']}")
-        print()
 
     while True:
         show_numbered_menu("Install AI2Pot from Source", _STEPS)
