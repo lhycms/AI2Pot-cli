@@ -3,6 +3,12 @@
 import sys
 from ai2pot_cli.menu import show_numbered_menu, get_choice, print_warning, print_success
 
+from ai2pot_cli.commands import register
+
+register(41, "ai2pot_cli.menus.install.router", "install_ai2pot_menu")
+register(411, "ai2pot_cli.menus.install.install_pypi", "pypi_install")
+register(42, "ai2pot_cli.menus.install.router", "install_lammps_menu")
+
 
 _MENU_ITEMS = [
     (411, "Install from PyPI",    "pip install ai2pot (from PyPI)"),
@@ -15,6 +21,9 @@ def install_ai2pot_menu():
     while True:
         show_numbered_menu("Install AI2Pot", _MENU_ITEMS)
         choice = get_choice()
+        from ai2pot_cli.commands import dispatch
+        if dispatch(choice):
+            continue
         if choice == 411:
             from ai2pot_cli.menus.install.install_pypi import pypi_install
             pypi_install()

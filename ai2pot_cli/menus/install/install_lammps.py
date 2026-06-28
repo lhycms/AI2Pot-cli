@@ -9,6 +9,14 @@ from ai2pot_cli.menu import (
     print_success, print_warning, print_error,
 )
 
+from ai2pot_cli.commands import register
+
+register(421, "ai2pot_cli.menus.install.install_lammps", "_step421_locate_lammps")
+register(422, "ai2pot_cli.menus.install.install_lammps", "_step422_integrate_plugin")
+register(423, "ai2pot_cli.menus.install.install_lammps", "_step423_cmake_configure")
+register(424, "ai2pot_cli.menus.install.install_lammps", "_step424_build_lammps")
+register(425, "ai2pot_cli.menus.install.install_lammps", "_step425_verify")
+
 # ── session state ───────────────────────────────────────────────────
 _session = {
     "lammps_dir": None,      # abs path to LAMMPS source
@@ -178,6 +186,9 @@ def lammps_step_menu():
 
         show_numbered_menu("Install LAMMPS + AI2Pot", _STEPS)
         choice = get_choice()
+        from ai2pot_cli.commands import dispatch
+        if dispatch(choice):
+            continue
         if choice in _STEP_FUNCS:
             _STEP_FUNCS[choice]()
         elif choice == 9:

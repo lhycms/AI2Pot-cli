@@ -53,6 +53,10 @@ def _interactive_loop():
         show_main_menu(MAIN_SECTIONS, MAIN_FOOTER)
         choice = get_choice()
 
+        from ai2pot_cli.commands import dispatch
+        if dispatch(choice):
+            continue
+
         if choice == 0:
             print_success("Bye.")
             sys.exit(0)

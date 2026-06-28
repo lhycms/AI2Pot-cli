@@ -16,6 +16,13 @@ from ai2pot_cli.menu import (
     print_success, print_warning, print_error,
 )
 
+from ai2pot_cli.commands import register
+
+register(412, "ai2pot_cli.menus.install.install_source", "source_install_menu")
+register(4121, "ai2pot_cli.menus.install.install_source", "_step4121_configure_cuda")
+register(4122, "ai2pot_cli.menus.install.install_source", "_step4122_install_pytorch")
+register(4123, "ai2pot_cli.menus.install.install_source", "_step4123_install_ai2pot")
+
 # ── constants ───────────────────────────────────────────────────────
 DEFAULT_ENV = "ai2pot_env"
 
@@ -353,6 +360,9 @@ def source_install_menu():
     while True:
         show_numbered_menu("Install AI2Pot from Source", _STEPS)
         choice = get_choice()
+        from ai2pot_cli.commands import dispatch
+        if dispatch(choice):
+            continue
         if choice in _STEP_FUNCS:
             _STEP_FUNCS[choice]()  # each step calls sys.exit(0) when done
         elif choice == 9:
