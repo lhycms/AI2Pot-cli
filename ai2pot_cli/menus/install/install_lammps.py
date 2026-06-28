@@ -101,7 +101,14 @@ def _step201_setup_lammps():
 
     # check if already done
     lammps_dir = _session.get("lammps_dir")
-    ai2pot_src = _session.get("ai2pot_src", os.getcwd())
+    ai2pot_src = _session.get("ai2pot_src")
+    if not ai2pot_src:
+        ai2pot_src = input(f"  {'AI2Pot source path':<18}: ").strip()
+        if not ai2pot_src:
+            print_warning("AI2Pot source path is required.")
+            sys.exit(0)
+        ai2pot_src = os.path.abspath(ai2pot_src)
+        _session["ai2pot_src"] = ai2pot_src
     if lammps_dir:
         dst_src = os.path.join(lammps_dir, "src", "AI2POT")
         if os.path.isdir(dst_src):
@@ -110,7 +117,7 @@ def _step201_setup_lammps():
             print()
             print_success("Step 201 already completed.")
             print()
-            print_kv("Next step", f"1. cd {lammps_dir}\n{' '*22}2. 202) Build LAMMPS")
+            print_kv("Next step", f"1. cd {lammps_dir}/src\n{' '*22}2. 202) Build LAMMPS")
             print_sep()
             print()
             sys.exit(0)
@@ -149,7 +156,7 @@ def _step201_setup_lammps():
     print_kv("LAMMPS source", lammps_dir)
     print_kv("Interface", src_dir)
     print()
-    print_kv("Next step", f"1. cd {lammps_dir}\n{' '*22}2. 202) Build LAMMPS")
+    print_kv("Next step", f"1. cd {lammps_dir}/src\n{' '*22}2. 202) Build LAMMPS")
     print_sep()
     print()
     sys.exit(0)
@@ -274,11 +281,9 @@ _STEP_FUNCS = {
 
 def lammps_step_menu():
     """Step-by-step LAMMPS with AI2Pot installation sub-menu."""
-    from ai2pot_cli.menus.install.install_source import _require_ai2pot_source
-    if not _require_ai2pot_source():
-        return
-
-    _session["ai2pot_src"] = os.getcwd()
+    # auto-detect AI2Pot source if we happen to be inside one
+    if os.path.isfile(os.path.join(os.getcwd(), "pyproject.toml")):
+        _session["ai2pot_src"] = os.getcwd()
 
     while True:
         if any(_session.values()):
