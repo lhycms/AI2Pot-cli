@@ -32,6 +32,10 @@ MAIN_SECTIONS = [
         (23, "Plot Descriptor Projection"),
         (24, "Export TorchScript Model"),
     ]),
+    ("Install & Setup", [
+        (41, "Install AI2Pot"),
+        (42, "Install LAMMPS + AI2Pot"),
+    ]),
     ("MD Utilities", [
         (91, "Doctor"),
         (92, "Show Examples"),
@@ -132,6 +136,14 @@ def _interactive_loop():
             from ai2pot_cli.menus.postprocessing.serialize_model import serialize_model
             serialize_model(checkpoint_path, output_path=output_path)
             sys.exit(0)
+
+        # --- Install & Setup ---
+        elif choice == 41:
+            from ai2pot_cli.menus.install.router import install_ai2pot_menu
+            install_ai2pot_menu()
+        elif choice == 42:
+            from ai2pot_cli.menus.install.router import install_lammps_menu
+            install_lammps_menu()
 
         # --- MD Utilities ---
         elif choice == 91:

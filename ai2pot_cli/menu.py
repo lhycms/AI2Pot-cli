@@ -79,6 +79,23 @@ def show_menu(title: str, items: List[Tuple[str, str]]):
     print()
 
 
+def show_numbered_menu(title: str, items: List[Tuple[int, str, str]]):
+    """Print a sub-menu with explicit numbering.
+
+    Args:
+        title: Menu title string.
+        items: List of (num, label, description) tuples.
+    """
+    print(_make_frame(title))
+    for num, label, desc in items:
+        print(f" {num:>3d})  {label:<28s} {desc}")
+    print()
+    print(f"  9)  Back")
+    print(f"  0)  Quit")
+    print(" " + "-" * (LINE_WIDTH - 1))
+    print()
+
+
 def show_generation_success(title: str, output_path: str, next_command: str):
     """Print a standardised success banner after generating a config file.
 
