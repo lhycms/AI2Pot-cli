@@ -28,11 +28,51 @@ DEFAULT_ENV = "ai2pot_env"
 _session = {
     "lammps_dir": None,
     "ai2pot_src": None,
-    "lmp_binary": None,
 }
 
 
 # ── helpers ─────────────────────────────────────────────────────────
+
+def _detect_lammps_dir():
+    """Try to detect LAMMPS source from session or CWD. Returns path or None."""
+    # 1) from session
+    stored = _session.get("lammps_dir")
+    if stored and os.path.isdir(stored):
+        return stored
+
+    # 2) CWD is lammps/src/ — detect the parent
+    cwd = os.getcwd()
+    if os.path.isdir(os.path.join(cwd, "AI2POT")) or os.path.isfile(os.path.join(cwd, "Makefile")):
+        parent = os.path.dirname(cwd)
+        if os.path.isdir(os.path.join(parent, "src")):
+            _session["lammps_dir"] = parent
+            return parent
+
+    # 3) CWD is lammps/ — check for src/
+    if os.path.isdir(os.path.join(cwd, "src", "AI2POT")) or os.path.isfile(os.path.join(cwd, "src", "Makefile")):
+        _session["lammps_dir"] = cwd
+        return cwd
+
+    return None
+
+
+def _require_lammps_dir():
+    """Ensure we have a LAMMPS source path. Prompts if not detectable."""
+    lammps_dir = _detect_lammps_dir()
+    if lammps_dir:
+        print_kv("LAMMPS source", lammps_dir)
+        return lammps_dir
+
+    lammps_dir = input(f"  {'LAMMPS source path':<18}: ").strip()
+    if not lammps_dir:
+        return None
+    lammps_dir = os.path.abspath(lammps_dir)
+    if not os.path.isdir(lammps_dir):
+        print_error(f"Directory not found: {lammps_dir}")
+        return None
+    _session["lammps_dir"] = lammps_dir
+    return lammps_dir
+
 
 def _run(cmd, cwd=None, env=None):
     """Run a shell command with streaming output. Returns True on success."""
@@ -99,8 +139,7 @@ def _step201_setup_lammps():
     """Step 201: Locate LAMMPS source and copy AI2Pot interface files."""
     print_section("Step 201: Setup LAMMPS Source")
 
-    # check if already done
-    lammps_dir = _session.get("lammps_dir")
+    # ensure we have AI2Pot source path
     ai2pot_src = _session.get("ai2pot_src")
     if not ai2pot_src:
         ai2pot_src = input(f"  {'AI2Pot source path':<18}: ").strip()
@@ -109,31 +148,25 @@ def _step201_setup_lammps():
             sys.exit(0)
         ai2pot_src = os.path.abspath(ai2pot_src)
         _session["ai2pot_src"] = ai2pot_src
-    if lammps_dir:
-        dst_src = os.path.join(lammps_dir, "src", "AI2POT")
-        if os.path.isdir(dst_src):
-            print_kv("LAMMPS source", lammps_dir)
-            print_kv("AI2Pot interface", os.path.join(ai2pot_src, "interface", "lammps"))
-            print()
-            print_success("Step 201 already completed.")
-            print()
-            print_kv("Next step", f"1. cd {lammps_dir}/src\n{' '*22}2. 202) Build LAMMPS")
-            print_sep()
-            print()
-            sys.exit(0)
+
+    # check if already done
+    lammps_dir = _detect_lammps_dir()
+    if lammps_dir and os.path.isdir(os.path.join(lammps_dir, "src", "AI2POT")):
+        print_kv("LAMMPS source", lammps_dir)
+        print_kv("AI2Pot interface", os.path.join(ai2pot_src, "interface", "lammps"))
+        print()
+        print_success("Step 201 already completed.")
+        print()
+        print_kv("Next step", f"1. cd {lammps_dir}/src\n{' '*22}2. 202) Build LAMMPS")
+        print_sep()
+        print()
+        sys.exit(0)
 
     # --- 201a. Locate LAMMPS ---
-    prev = lammps_dir or ""
-    lammps_dir = input(f"  {'LAMMPS source path':<18} [{prev}]: ").strip() or prev
+    print_kv("AI2Pot source", ai2pot_src)
+    lammps_dir = _require_lammps_dir()
     if not lammps_dir:
-        print_warning("No path provided.")
         sys.exit(0)
-    lammps_dir = os.path.abspath(lammps_dir)
-    if not os.path.isdir(lammps_dir):
-        print_error(f"Directory not found: {lammps_dir}")
-        sys.exit(1)
-    _session["lammps_dir"] = lammps_dir
-    print_kv("LAMMPS source", lammps_dir)
 
     # --- 201b. Copy interface files ---
     src_dir = os.path.join(ai2pot_src, "interface", "lammps")
@@ -165,17 +198,11 @@ def _step201_setup_lammps():
 # ── step 202: Build LAMMPS ──────────────────────────────────────────
 
 def _step202_build_lammps():
-    """Step 202: Enable AI2POT package and build LAMMPS."""
+    """Step 202: Enable AI2POT package and build LAMMPS from CWD."""
     print_section("Step 202: Build LAMMPS")
 
-    lammps = _session.get("lammps_dir")
-    if not lammps:
-        print_warning("LAMMPS source not set. Run Step 201 first.")
-        print()
-        sys.exit(0)
-
-    src_dir = os.path.join(lammps, "src")
-    print_kv("LAMMPS src", src_dir)
+    src_dir = os.getcwd()
+    print_kv("Build dir", src_dir)
     print()
 
     # check if already built
@@ -219,8 +246,6 @@ def _step202_build_lammps():
     if not _run(cmd, cwd=src_dir):
         sys.exit(1)
 
-    _session["lmp_binary"] = lmp_path
-
     print_section("LAMMPS Build Completed")
     print_kv("Binary", lmp_path)
     print_kv("TORCH_ROOT", torch_root)
@@ -234,17 +259,12 @@ def _step203_verify():
     """Step 203: Verify LAMMPS installation."""
     print_section("Step 203: Verify LAMMPS")
 
-    lmp = _session.get("lmp_binary")
-    if not lmp:
-        lmp = _session.get("lammps_dir", "")
-        if lmp:
-            lmp = os.path.join(lmp, "src", "lmp_mpi")
-    if not lmp or not os.path.isfile(lmp):
-        print_warning("LAMMPS binary not found. Run Step 202 first.")
+    lmp = os.path.join(os.getcwd(), "lmp_mpi")
+    if not os.path.isfile(lmp):
+        print_warning("lmp_mpi not found in current directory. Run Step 202 first.")
         print()
         sys.exit(0)
 
-    _session["lmp_binary"] = lmp
     print_kv("Binary", lmp)
     print()
 
