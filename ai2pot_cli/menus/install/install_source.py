@@ -44,10 +44,8 @@ def _run(cmd, cwd=None, env=None):
 
 
 def _detect_env_python():
-    """Find the python executable inside the target environment."""
-    env_name = _session.get("env_name")
-    if not env_name:
-        return sys.executable
+    """Find the python executable inside the ai2pot_env environment."""
+    env_name = _session.get("env_name") or DEFAULT_ENV
 
     cached = _session.get("env_python")
     if cached and os.path.isfile(cached):
@@ -89,7 +87,7 @@ def _exit_with_next(step, title):
 
 def _exit4122_with_reminder():
     """After 4122, remind user to activate the conda env before 4123."""
-    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name") or DEFAULT_ENV
+    env_name = _session.get("env_name") or DEFAULT_ENV
     print()
     print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. 4123) Install AI2Pot")
     print_sep()
@@ -106,19 +104,12 @@ def _exit_done():
 
 def _exit_with_usage():
     """Print usage hint after all 412 steps are done, then exit."""
-    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name")
-    if not env_name:
-        prefix = os.environ.get("CONDA_PREFIX", "")
-        if prefix:
-            env_name = os.path.basename(prefix)
-    if not env_name:
-        env_name = DEFAULT_ENV
+    env_name = _session.get("env_name") or DEFAULT_ENV
 
     print()
     print_success("All 412 steps completed!")
     print()
-    print_kv("Usage", f"conda activate {env_name}")
-    print_kv("Verify", "python -c \"import ai2pot; print(ai2pot.__version__)\"")
+    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. python -c \"import ai2pot; print(ai2pot.__version__)\"")
     _exit_done()
 
 
@@ -168,7 +159,7 @@ def _step4122_install_pytorch():
     print_section("Step 4122: Install PyTorch")
 
     # --- 2a. Check / create environment ---
-    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name") or DEFAULT_ENV
+    env_name = _session.get("env_name") or DEFAULT_ENV
     _session["env_name"] = env_name
     print_kv("Environment", env_name)
 
@@ -244,7 +235,7 @@ def _step4123_install_ai2pot():
     print_section("Step 4123: Install AI2Pot")
 
     # ensure env name is set
-    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name") or DEFAULT_ENV
+    env_name = _session.get("env_name") or DEFAULT_ENV
     _session["env_name"] = env_name
 
     src = _session["source_dir"]
