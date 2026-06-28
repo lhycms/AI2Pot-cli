@@ -244,9 +244,9 @@ def _step4123_install_ai2pot():
     # --- 3a. Check if ai2pot already installed ---
     py = _detect_env_python()
     print_kv("Python", py)
-    # must verify compiled extensions exist, not just the top-level package
+    # cd away from source dir so Python can't import ai2pot from CWD
     result = subprocess.run(
-        f"{py} -c \"import ai2pot; print(ai2pot.__version__); from ai2pot.fromcc import nblist; print('nblist OK')\"",
+        f"cd /tmp && {py} -c \"import ai2pot; print(ai2pot.__version__); from ai2pot.fromcc import nblist; print('nblist OK')\"",
         shell=True, capture_output=True, text=True,
     )
     if result.returncode == 0:
@@ -309,7 +309,7 @@ def _step4123_install_ai2pot():
 
     # --- 3d. Verify ---
     result = subprocess.run(
-        f"{_detect_env_python()} -c \"import ai2pot; print(ai2pot.__version__)\"",
+        f"cd /tmp && {_detect_env_python()} -c \"import ai2pot; print(ai2pot.__version__); from ai2pot.fromcc import nblist; print('nblist OK')\"",
         shell=True, capture_output=True, text=True,
     )
     if result.returncode != 0:
