@@ -244,14 +244,16 @@ def _step4123_install_ai2pot():
     # --- 3a. Check if ai2pot already installed ---
     py = _detect_env_python()
     print_kv("Python", py)
+    # must verify compiled extensions exist, not just the top-level package
     result = subprocess.run(
-        f"{py} -c \"import ai2pot; print(ai2pot.__version__)\"",
+        f"{py} -c \"import ai2pot; print(ai2pot.__version__); from ai2pot.fromcc import nblist; print('nblist OK')\"",
         shell=True, capture_output=True, text=True,
     )
     if result.returncode == 0:
-        print_kv("AI2Pot", result.stdout.strip())
+        lines = result.stdout.strip().splitlines()
+        print_kv("AI2Pot", lines[0] if lines else "unknown")
         print()
-        print_success("AI2Pot already installed.")
+        print_success("AI2Pot already installed (compiled extensions verified).")
         _exit_with_usage()
 
     # --- 3b. Install build dependencies ---
