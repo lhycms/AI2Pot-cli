@@ -126,6 +126,16 @@ def _exit_with_next(step, title):
     sys.exit(0)
 
 
+def _print_ldd_lines(lines, max_show=6):
+    """Print ldd output lines, with '...' if truncated."""
+    for line in lines[:max_show]:
+        parts = line.strip().split("=>")
+        if len(parts) >= 2:
+            print_kv(parts[0].strip(), parts[1].strip())
+    if len(lines) > max_show:
+        print(f"  {'':18}  ... ({len(lines) - max_show} more)")
+
+
 def _exit_done():
     """Print final separator and exit."""
     print_sep()
@@ -290,10 +300,7 @@ def _step203_verify():
 
     torch_lines = result.stdout.strip().split("\n")
     print_success("PyTorch linking verified.")
-    for line in torch_lines[:4]:
-        parts = line.strip().split("=>")
-        if len(parts) >= 2:
-            print_kv(parts[0].strip(), parts[1].strip()[:52])
+    _print_ldd_lines(torch_lines)
     print()
 
     # --- 203c. Verify NEP linking ---
@@ -301,10 +308,7 @@ def _step203_verify():
     if result.returncode == 0 and result.stdout.strip():
         nep_lines = result.stdout.strip().split("\n")
         print_success("NEP linking verified.")
-        for line in nep_lines[:4]:
-            parts = line.strip().split("=>")
-            if len(parts) >= 2:
-                print_kv(parts[0].strip(), parts[1].strip()[:52])
+        _print_ldd_lines(nep_lines)
     else:
         print_warning("NEP libraries not detected. AI2POT NEP may not work.")
     print()
@@ -314,10 +318,7 @@ def _step203_verify():
     if result.returncode == 0 and result.stdout.strip():
         mtp_lines = result.stdout.strip().split("\n")
         print_success("MTP linking verified.")
-        for line in mtp_lines[:4]:
-            parts = line.strip().split("=>")
-            if len(parts) >= 2:
-                print_kv(parts[0].strip(), parts[1].strip()[:52])
+        _print_ldd_lines(mtp_lines)
     else:
         print_warning("MTP libraries not detected. AI2POT MTP may not work.")
     print()
