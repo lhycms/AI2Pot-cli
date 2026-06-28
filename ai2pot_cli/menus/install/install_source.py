@@ -93,7 +93,14 @@ def _exit_done():
 
 def _exit_with_usage():
     """Print usage hint after all 412 steps are done, then exit."""
-    env_name = _session.get("env_name", "ai2pot")
+    env_name = _session.get("env_name") or os.environ.get("CONDA_DEFAULT_ENV")
+    if not env_name:
+        prefix = os.environ.get("CONDA_PREFIX", "")
+        if prefix:
+            env_name = os.path.basename(prefix)
+    if not env_name:
+        env_name = "ai2pot"  # fallback
+
     print()
     print_success("All 412 steps completed!")
     print()
