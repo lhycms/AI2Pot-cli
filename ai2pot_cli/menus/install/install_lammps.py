@@ -323,7 +323,7 @@ def _step203_verify():
         print_warning("MTP libraries not detected. AI2POT MTP may not work.")
     print()
 
-    print_success("All LAMMPS steps completed!")
+    print_success("LAMMPS with AI2Pot installed successfully!")
     _exit_done()
 
 
