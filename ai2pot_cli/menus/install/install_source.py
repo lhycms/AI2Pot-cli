@@ -86,10 +86,9 @@ def _exit_with_next(step, title):
 
 
 def _exit4122_with_reminder():
-    """After 4122, remind user to activate the conda env before 4123."""
-    env_name = _session.get("env_name") or DEFAULT_ENV
+    """After 4122, direct user to the next step."""
     print()
-    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. 4123) Install AI2Pot")
+    print_kv("Next step", "4123) Install AI2Pot")
     print_sep()
     print()
     sys.exit(0)
@@ -109,7 +108,7 @@ def _exit_with_usage():
     print()
     print_success("All 412 steps completed!")
     print()
-    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. python -c \"import ai2pot; print(ai2pot.__version__)\"")
+    print_kv("Next step", f"conda activate {env_name}")
     _exit_done()
 
 
