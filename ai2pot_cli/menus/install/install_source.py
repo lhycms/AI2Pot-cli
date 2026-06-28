@@ -16,10 +16,13 @@ from ai2pot_cli.menu import (
     print_success, print_warning, print_error,
 )
 
+# ── constants ───────────────────────────────────────────────────────
+DEFAULT_ENV = "ai2pot_env"
+
 # ── session state ───────────────────────────────────────────────────
 _session = {
     "source_dir": None,
-    "env_name": None,
+    "env_name": DEFAULT_ENV,
     "env_python": None,
 }
 
@@ -84,6 +87,16 @@ def _exit_with_next(step, title):
     sys.exit(0)
 
 
+def _exit4122_with_reminder():
+    """After 4122, remind user to activate the conda env before 4123."""
+    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name") or DEFAULT_ENV
+    print()
+    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. 4123) Install AI2Pot")
+    print_sep()
+    print()
+    sys.exit(0)
+
+
 def _exit_done():
     """Print final separator and exit."""
     print_sep()
@@ -93,13 +106,13 @@ def _exit_done():
 
 def _exit_with_usage():
     """Print usage hint after all 412 steps are done, then exit."""
-    env_name = _session.get("env_name") or os.environ.get("CONDA_DEFAULT_ENV")
+    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name")
     if not env_name:
         prefix = os.environ.get("CONDA_PREFIX", "")
         if prefix:
             env_name = os.path.basename(prefix)
     if not env_name:
-        env_name = "ai2pot"  # fallback
+        env_name = DEFAULT_ENV
 
     print()
     print_success("All 412 steps completed!")
@@ -155,10 +168,8 @@ def _step4122_install_pytorch():
     print_section("Step 4122: Install PyTorch")
 
     # --- 2a. Check / create environment ---
-    env_name = _session.get("env_name")
-    if not env_name:
-        env_name = input(" Environment name [ai2pot]: ").strip() or "ai2pot"
-        _session["env_name"] = env_name
+    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name") or DEFAULT_ENV
+    _session["env_name"] = env_name
     print_kv("Environment", env_name)
 
     env_exists = False
@@ -198,7 +209,7 @@ def _step4122_install_pytorch():
         print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
         print()
         print_success("PyTorch already installed.")
-        _exit_with_next(4123, "Install AI2Pot")
+        _exit4122_with_reminder()
 
     # --- 2c. Install PyTorch ---
     print_kv("Options", "cpu / cu118 / cu121 / cu124")
@@ -224,13 +235,17 @@ def _step4122_install_pytorch():
     print_section("PyTorch Installed Successfully")
     print_kv("PyTorch", lines[0] if lines else "unknown")
     print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
-    _exit_with_next(4123, "Install AI2Pot")
+    _exit4122_with_reminder()
 
 
 # ── step 4123: Install AI2Pot ──────────────────────────────────────
 
 def _step4123_install_ai2pot():
     print_section("Step 4123: Install AI2Pot")
+
+    # ensure env name is set
+    env_name = os.environ.get("CONDA_DEFAULT_ENV") or _session.get("env_name") or DEFAULT_ENV
+    _session["env_name"] = env_name
 
     src = _session["source_dir"]
     print_kv("Source", src)
