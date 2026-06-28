@@ -275,9 +275,6 @@ def _step203_verify():
         print()
         sys.exit(0)
 
-    print_kv("Binary", lmp)
-    print()
-
     # --- 203a. Basic smoke test ---
     result = subprocess.run(f"{lmp} -h", shell=True, capture_output=True, text=True)
     if result.returncode != 0:
@@ -323,6 +320,9 @@ def _step203_verify():
         print_warning("MTP libraries not detected. AI2POT MTP may not work.")
     print()
 
+    print_sep()
+    print_kv("Binary", lmp)
+    print()
     print_success("LAMMPS with AI2Pot installed successfully!")
     _exit_done()
 
