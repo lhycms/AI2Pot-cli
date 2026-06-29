@@ -245,6 +245,22 @@ def _step1023_install_ai2pot():
     _session["env_name"] = env_name
 
     src = _session["source_dir"]
+    if src is None:
+        cwd = os.getcwd()
+        if os.path.isfile(os.path.join(cwd, "pyproject.toml")) and os.path.isdir(os.path.join(cwd, "ai2pot")):
+            src = cwd
+            _session["source_dir"] = src
+        else:
+            print_warning("Not inside an AI2Pot source directory (pyproject.toml + ai2pot/ required).")
+            src = input(f"  {'AI2Pot source path':<18}: ").strip()
+            if not src:
+                print_error("No source directory provided.")
+                sys.exit(1)
+            src = os.path.abspath(src)
+            if not os.path.isfile(os.path.join(src, "pyproject.toml")) or not os.path.isdir(os.path.join(src, "ai2pot")):
+                print_error(f"Invalid AI2Pot source directory (need pyproject.toml + ai2pot/): {src}")
+                sys.exit(1)
+            _session["source_dir"] = src
     print_kv("Source", src)
     print()
 
