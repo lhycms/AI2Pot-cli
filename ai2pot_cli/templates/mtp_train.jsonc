@@ -111,7 +111,7 @@
         "predict_path": null,
 
         // Batch size for Lightning DataModule.
-        "batch_size": 1,
+        "batch_size": 16,
 
         // Neighbor-list cutoff radius. Usually equal to rmax.
         "rcut": 5.0,
@@ -128,7 +128,5 @@
         // Floating-point precision: "float32" or "float64".
         "torch_float_dtype": "float32",
 
-        // Whether the extxyz file contains virial/stress labels.
-        "has_virial": true
     }
 }

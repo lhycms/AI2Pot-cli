@@ -102,7 +102,19 @@ def run_train(config_path: str) -> None:
 
     # --- Detect model type ---
     is_mtp: bool = "mtp_level" in model_cfg
-    fit_virial: bool = model_cfg.get("fit_virial", dataset_cfg.get("has_virial", False))
+    fit_virial: bool = model_cfg.get("fit_virial", False)
+
+    if fit_virial:
+        from ase.io import iread as ase_iread
+        try:
+            first = next(ase_iread(trainset_path))
+        except StopIteration:
+            raise RuntimeError(f"No frames found in {trainset_path}")
+        if "virial" not in first.info:
+            raise RuntimeError(
+                f"fit_virial=true but no virial data found in {trainset_path}. "
+                "Set fit_virial=false in your config."
+            )
 
     # --- Build Model ---
     common_kwargs = dict(
@@ -153,7 +165,7 @@ def run_train(config_path: str) -> None:
         pbc_xyz=dataset_cfg["pbc_xyz"],
         sort=dataset_cfg.get("sort", False),
         torch_float_dtype=dtype,
-        has_virial=dataset_cfg.get("has_virial", False),
+        has_virial=fit_virial,
     )
 
     # --- Detect resume & build logger ---

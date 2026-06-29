@@ -12,7 +12,7 @@ from ai2pot_cli.menu import (
     print_success,
 )
 
-VERSION: str = "0.1.0"
+VERSION: str = "1.0.0"
 
 MAIN_SECTIONS = [
     ("Installation", [

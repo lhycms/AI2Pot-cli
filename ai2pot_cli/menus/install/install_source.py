@@ -93,8 +93,10 @@ def _exit_with_next(step, title):
 
 def _exit1022_with_reminder():
     """After 1022, direct user to the next step."""
+    env_name = _session.get("env_name") or DEFAULT_ENV
+
     print()
-    print_kv("Next step", "1023) Install AI2Pot")
+    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. pip install ai2pot-cli\n{' '*22}3. 1023) Install AI2Pot")
     print_sep()
     print()
     sys.exit(0)
@@ -109,12 +111,10 @@ def _exit_done():
 
 def _exit_with_usage():
     """Print usage hint after all source install steps are done, then exit."""
-    env_name = _session.get("env_name") or DEFAULT_ENV
-
     print()
     print_success("All source install steps completed!")
     print()
-    print_kv("Next step", f"1. conda activate {env_name}\n{' '*22}2. python -c \"import ai2pot; print(ai2pot.__version__)\"\n{' '*22}3. pip install ai2pot-cli")
+    print_kv("Next step", "python -c \"import ai2pot; print(ai2pot.__version__)\"")
     _exit_done()
 
 
@@ -287,9 +287,9 @@ def _step1023_install_ai2pot():
     print_section("Building AI2Pot")
 
     nproc = input(f"  {'CMAKE_BUILD_PARALLEL_LEVEL':<18} [16]: ").strip() or "16"
+    print("  (CC: C compiler, e.g. gcc;  CXX: C++ compiler, e.g. g++.  Leave empty to auto-detect)")
     cc = input(f"  {'CC':<18} []: ").strip()
     cxx = input(f"  {'CXX':<18} []: ").strip()
-    hostcxx = input(f"  {'CUDAHOSTCXX':<18} []: ").strip()
 
     build_env = os.environ.copy()
     build_env["CMAKE_BUILD_PARALLEL_LEVEL"] = nproc
@@ -297,8 +297,7 @@ def _step1023_install_ai2pot():
         build_env["CC"] = cc
     if cxx:
         build_env["CXX"] = cxx
-    if hostcxx:
-        build_env["CUDAHOSTCXX"] = hostcxx
+        build_env["CUDAHOSTCXX"] = cxx
 
     print()
     print_kv("CMAKE_BUILD_PARALLEL_LEVEL", nproc)
@@ -306,8 +305,7 @@ def _step1023_install_ai2pot():
         print_kv("CC", cc)
     if cxx:
         print_kv("CXX", cxx)
-    if hostcxx:
-        print_kv("CUDAHOSTCXX", hostcxx)
+        print_kv("CUDAHOSTCXX", cxx)
     print()
 
     if not _run(
