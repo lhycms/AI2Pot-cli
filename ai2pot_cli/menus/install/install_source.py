@@ -352,11 +352,11 @@ def _require_ai2pot_source():
     cwd = os.getcwd()
     if os.path.isfile(os.path.join(cwd, "pyproject.toml")) and os.path.isdir(os.path.join(cwd, "ai2pot")):
         return
+    print()
     print_error("Not inside an AI2Pot source directory.")
-    print_kv("Required", "pyproject.toml + ai2pot/")
     print_kv("Current dir", cwd)
     print()
-    print("  cd /path/to/AI2Pot  &&  re-run this step.")
+    print_warning("Please cd to the AI2Pot root directory and re-run this step.")
     print()
     sys.exit(1)
 
