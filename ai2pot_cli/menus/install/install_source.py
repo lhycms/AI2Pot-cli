@@ -28,7 +28,6 @@ DEFAULT_ENV = "ai2pot_env"
 
 # ── session state ───────────────────────────────────────────────────
 _session = {
-    "source_dir": None,
     "env_name": DEFAULT_ENV,
     "env_python": None,
 }
@@ -122,6 +121,7 @@ def _exit_with_usage():
 # ── step 1021: Configure CUDA ───────────────────────────────────────
 
 def _step1021_configure_cuda():
+    _require_ai2pot_source()
     print_section("Step 1021: Configure CUDA")
 
     cuda_home = os.environ.get("CUDA_HOME", "")
@@ -162,6 +162,7 @@ def _step1021_configure_cuda():
 # ── step 1022: Install PyTorch ─────────────────────────────────────
 
 def _step1022_install_pytorch():
+    _require_ai2pot_source()
     print_section("Step 1022: Install PyTorch")
 
     # --- 2a. Check / create environment ---
@@ -238,29 +239,14 @@ def _step1022_install_pytorch():
 # ── step 1023: Install AI2Pot ──────────────────────────────────────
 
 def _step1023_install_ai2pot():
+    _require_ai2pot_source()
     print_section("Step 1023: Install AI2Pot")
 
     # ensure env name is set
     env_name = _session.get("env_name") or DEFAULT_ENV
     _session["env_name"] = env_name
 
-    src = _session["source_dir"]
-    if src is None:
-        cwd = os.getcwd()
-        if os.path.isfile(os.path.join(cwd, "pyproject.toml")) and os.path.isdir(os.path.join(cwd, "ai2pot")):
-            src = cwd
-            _session["source_dir"] = src
-        else:
-            print_warning("Not inside an AI2Pot source directory (pyproject.toml + ai2pot/ required).")
-            src = input(f"  {'AI2Pot source path':<18}: ").strip()
-            if not src:
-                print_error("No source directory provided.")
-                sys.exit(1)
-            src = os.path.abspath(src)
-            if not os.path.isfile(os.path.join(src, "pyproject.toml")) or not os.path.isdir(os.path.join(src, "ai2pot")):
-                print_error(f"Invalid AI2Pot source directory (need pyproject.toml + ai2pot/): {src}")
-                sys.exit(1)
-            _session["source_dir"] = src
+    src = os.getcwd()
     print_kv("Source", src)
     print()
 
@@ -362,29 +348,22 @@ _STEP_FUNCS = {
 
 
 def _require_ai2pot_source():
-    """Ensure we are inside an AI2Pot source directory. Returns False if user declines."""
-    if os.path.isfile(os.path.join(os.getcwd(), "pyproject.toml")):
-        return True
-    print_warning("Not inside an AI2Pot source directory (no pyproject.toml found).")
-    path = input(f"  {'AI2Pot source path':<18}: ").strip()
-    if not path:
-        return False
-    path = os.path.abspath(path)
-    if not os.path.isfile(os.path.join(path, "pyproject.toml")):
-        print_error(f"No pyproject.toml found in: {path}")
-        return False
-    os.chdir(path)
-    print_success(f"Entered: {path}")
+    """Ensure we are inside an AI2Pot source directory. Exits if not."""
+    cwd = os.getcwd()
+    if os.path.isfile(os.path.join(cwd, "pyproject.toml")) and os.path.isdir(os.path.join(cwd, "ai2pot")):
+        return
+    print_error("Not inside an AI2Pot source directory.")
+    print_kv("Required", "pyproject.toml + ai2pot/")
+    print_kv("Current dir", cwd)
     print()
-    return True
+    print("  cd /path/to/AI2Pot  &&  re-run this step.")
+    print()
+    sys.exit(1)
 
 
 def source_install_menu():
     """Step-by-step source install sub-menu."""
-    if not _require_ai2pot_source():
-        return
-
-    _session["source_dir"] = os.getcwd()
+    _require_ai2pot_source()
 
     while True:
         show_numbered_menu("Install AI2Pot from Source", _STEPS)
