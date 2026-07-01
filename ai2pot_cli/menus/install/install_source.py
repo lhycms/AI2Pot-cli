@@ -196,6 +196,7 @@ def _step1022_install_pytorch():
 
     # --- 2b. Check if torch is installed ---
     py = _detect_env_python()
+    torch_installed = False
     result = subprocess.run(
         f"{py} -c \"import torch; print(torch.__version__); print(torch.version.cuda if torch.cuda.is_available() else 'CPU')\"",
         shell=True, capture_output=True, text=True,
@@ -207,32 +208,53 @@ def _step1022_install_pytorch():
         print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
         print()
         print_success("PyTorch already installed.")
-        _exit1022_with_reminder()
+        torch_installed = True
 
-    # --- 2c. Install PyTorch ---
-    print_kv("Options", "cpu / cu118 / cu121 / cu124")
-    cuda = input(f"  {'CUDA version':<18} [cpu]: ").strip() or "cpu"
+    if not torch_installed:
+        # --- 2c. Install PyTorch ---
+        print_kv("Options", "cpu / cu118 / cu121 / cu124")
+        cuda = input(f"  {'CUDA version':<18} [cpu]: ").strip() or "cpu"
+        print()
+
+        index_url = f"https://download.pytorch.org/whl/{cuda}" if cuda != "cpu" else "https://download.pytorch.org/whl/cpu"
+
+        if not _pip(f"install torch==2.4.0 --index-url {index_url}"):
+            sys.exit(1)
+
+        # --- 2d. Verify ---
+        result = subprocess.run(
+            f"{_detect_env_python()} -c \"import torch; print(torch.__version__); print(torch.version.cuda if torch.cuda.is_available() else 'CPU')\"",
+            shell=True, capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print_error("PyTorch verification failed.")
+            print(result.stderr)
+            sys.exit(1)
+
+        lines = result.stdout.strip().splitlines()
+        print_section("PyTorch Installed Successfully")
+        print_kv("PyTorch", lines[0] if lines else "unknown")
+        print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
+
+    # --- 2e. Install build dependencies (needed by ai2pot-cli as well) ---
+    print_section("Installing Build Dependencies")
+
+    src = os.getcwd()
+    if not _pip("install -U pip setuptools wheel"):
+        sys.exit(1)
+    if not _pip("install scikit-build-core==0.12.2 cmake==4.3.2 pybind11==2.11.1"):
+        sys.exit(1)
+
+    req_path = os.path.join(src, "requirements-lock.txt")
+    if os.path.isfile(req_path):
+        if not _pip(f"install -r {req_path}"):
+            sys.exit(1)
+    else:
+        print_warning(f"requirements-lock.txt not found in {src}")
+
+    print_success("Build dependencies installed.")
     print()
 
-    index_url = f"https://download.pytorch.org/whl/{cuda}" if cuda != "cpu" else "https://download.pytorch.org/whl/cpu"
-
-    if not _pip(f"install torch==2.4.0 --index-url {index_url}"):
-        sys.exit(1)
-
-    # --- 2d. Verify ---
-    result = subprocess.run(
-        f"{_detect_env_python()} -c \"import torch; print(torch.__version__); print(torch.version.cuda if torch.cuda.is_available() else 'CPU')\"",
-        shell=True, capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        print_error("PyTorch verification failed.")
-        print(result.stderr)
-        sys.exit(1)
-
-    lines = result.stdout.strip().splitlines()
-    print_section("PyTorch Installed Successfully")
-    print_kv("PyTorch", lines[0] if lines else "unknown")
-    print_kv("CUDA", lines[1] if len(lines) > 1 else "N/A")
     _exit1022_with_reminder()
 
 
@@ -265,25 +287,7 @@ def _step1023_install_ai2pot():
         print_success("AI2Pot already installed (compiled extensions verified).")
         _exit_with_usage()
 
-    # --- 3b. Install build dependencies ---
-    print_section("Installing Build Dependencies")
-
-    if not _pip("install -U pip setuptools wheel"):
-        sys.exit(1)
-    if not _pip("install scikit-build-core==0.12.2 cmake==4.3.2 pybind11==2.11.1"):
-        sys.exit(1)
-
-    req_path = os.path.join(src, "requirements-lock.txt")
-    if os.path.isfile(req_path):
-        if not _pip(f"install -r {req_path}"):
-            sys.exit(1)
-    else:
-        print_warning(f"requirements-lock.txt not found in {src}")
-
-    print_success("Build dependencies installed.")
-    print()
-
-    # --- 3c. Build AI2Pot ---
+    # --- 3b. Build AI2Pot ---
     print_section("Building AI2Pot")
 
     nproc = input(f"  {'CMAKE_BUILD_PARALLEL_LEVEL':<18} [16]: ").strip() or "16"
@@ -314,7 +318,7 @@ def _step1023_install_ai2pot():
     ):
         sys.exit(1)
 
-    # --- 3d. Verify ---
+    # --- 3c. Verify ---
     result = subprocess.run(
         f"cd /tmp && {_detect_env_python()} -c \"import ai2pot; print(ai2pot.__version__); from ai2pot.fromcc import nblist; print('nblist OK')\"",
         shell=True, capture_output=True, text=True,
