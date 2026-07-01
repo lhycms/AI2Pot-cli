@@ -1,7 +1,7 @@
 """Step-by-step AI2Pot source installation.
 
 1021) Configure CUDA
-1022) Install PyTorch
+1022) Install PyTorch and Dependencies
 1023) Install AI2Pot
 """
 
@@ -133,7 +133,7 @@ def _step1021_configure_cuda():
 
     if cuda_home and nvcc_path:
         print_success("CUDA already configured.")
-        _exit_with_next(1022, "Install PyTorch")
+        _exit_with_next(1022, "Install PyTorch and Dependencies")
 
     if not cuda_home:
         cuda_home = input(f"  {'CUDA toolkit path':<18} [/usr/local/cuda]: ").strip() or "/usr/local/cuda"
@@ -152,7 +152,7 @@ def _step1021_configure_cuda():
     done = input(" Configured? (y/n) [n]: ").strip()
     if done.lower() == 'y':
         print_success("CUDA configured.")
-        _exit_with_next(1022, "Install PyTorch")
+        _exit_with_next(1022, "Install PyTorch and Dependencies")
 
     print_warning("Configure CUDA first, then re-run this step.")
     print()
@@ -163,7 +163,7 @@ def _step1021_configure_cuda():
 
 def _step1022_install_pytorch():
     _require_ai2pot_source()
-    print_section("Step 1022: Install PyTorch")
+    print_section("Step 1022: Install PyTorch and Dependencies")
 
     # --- 2a. Check / create environment ---
     env_name = _session.get("env_name") or DEFAULT_ENV
@@ -338,7 +338,7 @@ def _step1023_install_ai2pot():
 
 _STEPS = [
     (1021, "Configure CUDA",   "Set CUDA_HOME, PATH, LD_LIBRARY_PATH"),
-    (1022, "Install PyTorch",  "Create conda env + pip install torch==2.4.0"),
+    (1022, "Install PyTorch and Dependencies",  "Conda env + PyTorch 2.4.0 + build deps"),
     (1023, "Install AI2Pot",   "Install build deps + pip install -v --no-build-isolation --no-deps ."),
 ]
 
