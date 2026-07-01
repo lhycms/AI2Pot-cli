@@ -18,7 +18,7 @@ def show_banner(version: str):
     print(_make_line(content=""))
     print(_make_line(content="Official Command Line Interface for AI2Pot"))
     print(_make_line(content=""))
-    print(_make_line(content="Developer: Hanyu Liu (domainofbuaa@gmail.com)"))
+    print(_make_line(content="Developer: Hanyu Liu (hyliu2016@buaa.edu.cn)"))
     print(_make_line(content=""))
     print(_make_line(content="AI2Pot-cli : https://github.com/lhycms/AI2Pot-cli"))
     print(_make_line(content="AI2Pot : https://github.com/lhycms/AI2Pot"))
