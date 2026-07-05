@@ -72,7 +72,8 @@ def _interactive_loop():
 
         # --- Preprocessing ---
         elif choice == 11:
-            print(" -> Convert Dataset (not yet implemented)\n")
+            from ai2pot_cli.menus.preprocessing.convert_dataset import convert_dataset_menu
+            convert_dataset_menu()
         elif choice == 12:
             extxyz_path = input(" ExtXYZ file path: ").strip()
             if not extxyz_path:

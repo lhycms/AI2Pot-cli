@@ -122,7 +122,7 @@
         // Batch size for Lightning DataModule.
         "batch_size": 16,
 
-        // Neighbor-list cutoff radius. Usually equal to rmax_radial.
+        // Neighbor-list cutoff radius. Usually >= rmax_radial.
         "rcut": 6.0,
 
         // Maximum number of neighboring atoms stored for each atom.

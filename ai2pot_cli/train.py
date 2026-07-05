@@ -104,6 +104,23 @@ def run_train(config_path: str) -> None:
     is_mtp: bool = "mtp_level" in model_cfg
     fit_virial: bool = model_cfg.get("fit_virial", False)
 
+    # --- Validate rcut >= model radius ---
+    rcut: float = dataset_cfg["rcut"]
+    if is_mtp:
+        rmax: float = model_cfg["rmax"]
+        if rcut < rmax:
+            raise ValueError(
+                f"Dataset.rcut ({rcut}) must be >= Model.rmax ({rmax}) for MTP. "
+                "Increase rcut or decrease rmax in your config."
+            )
+    else:
+        rmax_radial: float = model_cfg["rmax_radial"]
+        if rcut < rmax_radial:
+            raise ValueError(
+                f"Dataset.rcut ({rcut}) must be >= Model.rmax_radial ({rmax_radial}) for NEP. "
+                "Increase rcut or decrease rmax_radial in your config."
+            )
+
     if fit_virial:
         from ase.io import iread as ase_iread
         try:
