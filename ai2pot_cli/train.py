@@ -178,7 +178,7 @@ def run_train(config_path: str) -> None:
         predict_path=dataset_cfg.get("predict_path"),
         batch_size=dataset_cfg["batch_size"],
         rcut=dataset_cfg["rcut"],
-        umax_num_neigh_atoms=dataset_cfg["umax_num_neigh_atoms"],
+        umax_num_neigh_atoms=model_cfg["umax_num_neigh_atoms"],
         pbc_xyz=dataset_cfg["pbc_xyz"],
         sort=dataset_cfg.get("sort", False),
         torch_float_dtype=dtype,

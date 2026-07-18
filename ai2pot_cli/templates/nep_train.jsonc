@@ -1,10 +1,25 @@
 {
     "Trainer": {
+        // ==========================================================
+        //  Essential parameters
+        // ==========================================================
+
         // Maximum number of training epochs.
         "max_epochs": 200,
 
         // Training device: "gpu" or "cpu".
         "accelerator": "gpu",
+
+        // Whether to normalize NEP descriptors before training.
+        "enable_descriptor_norm": true,
+
+        // Whether to shift atomic reference energies before training.
+        "enable_energy_shift": false,
+
+
+        // ==========================================================
+        //  Advanced parameters
+        // ==========================================================
 
         // Number of devices used by Lightning Trainer.
         "devices": 1,
@@ -25,13 +40,7 @@
         "num_threads": 16,
 
         // Whether to show tqdm progress bar during training.
-        "enable_progress_bar": false,
-
-        // Whether to normalize NEP descriptors before training.
-        "enable_descriptor_norm": true,
-
-        // Whether to shift atomic reference energies before training.
-        "enable_energy_shift": false
+        "enable_progress_bar": false
     },
 
     "Resume": {
@@ -47,8 +56,9 @@
     },
 
     "Model": {
-        // Element type map. Use "auto" to infer from the training extxyz file.
-        "type_map": "auto",
+        // ==========================================================
+        //  Essential parameters
+        // ==========================================================
 
         // Maximum number of neighboring atoms stored for each atom.
         "umax_num_neigh_atoms": 200,
@@ -80,6 +90,14 @@
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
         "zbl_rmax": 0.0,
 
+
+        // ==========================================================
+        //  Advanced parameters
+        // ==========================================================
+
+        // Element type map. Use "auto" to infer from the training extxyz file.
+        "type_map": "auto",
+
         // Inner cutoff of ZBL correction. Set 0.0 to disable ZBL.
         "zbl_rmin": 0.0,
 
@@ -106,8 +124,26 @@
     },
 
     "Dataset": {
+        // ==========================================================
+        //  Essential parameters
+        // ==========================================================
+
         // Path to training dataset in extxyz format.
         "trainset_path": "./train.xyz",
+
+        // Batch size for Lightning DataModule.
+        "batch_size": 16,
+
+        // Neighbor-list cutoff radius. Usually >= rmax_radial.
+        "rcut": 6.0,
+
+        // Floating-point precision: "float32" or "float64".
+        "torch_float_dtype": "float32",
+
+
+        // ==========================================================
+        //  Advanced parameters
+        // ==========================================================
 
         // Path to validation dataset.
         // Cannot be null.
@@ -119,23 +155,11 @@
         // Path to prediction dataset.
         "predict_path": null,
 
-        // Batch size for Lightning DataModule.
-        "batch_size": 16,
-
-        // Neighbor-list cutoff radius. Usually >= rmax_radial.
-        "rcut": 6.0,
-
-        // Maximum number of neighboring atoms stored for each atom.
-        "umax_num_neigh_atoms": 200,
-
         // Periodic boundary conditions along x, y, z.
         "pbc_xyz": [true, true, true],
 
         // Whether to sort atoms before constructing dataset.
-        "sort": false,
-
-        // Floating-point precision: "float32" or "float64".
-        "torch_float_dtype": "float32",
+        "sort": false
 
     }
 }

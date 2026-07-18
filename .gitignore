@@ -5,3 +5,4 @@ ai2pot_cli.egg-info
 **/*.png
 **/*.traj
 **/*.log
+**/.claude
