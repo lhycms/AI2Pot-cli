@@ -56,9 +56,10 @@ The following menu will be shown:
  ============================== Preprocessing ===============================
  11)  Convert Dataset                12)  Standardize ExtXYZ
  13)  Analyse Dataset                14)  MTP Active Learning
- 15)  NEP Active Learning
+ 15)  NEP Active Learning            16)  NNMTP Active Learning
  ========================= Potential Training Input =========================
  21)  MTP Training Input             22)  NEP Training Input
+ 23)  NNMTP Training Input
  ============================== Postprocessing ==============================
  31)  Plot E/F/V Parity              32)  Plot Learning Curve
  33)  Plot Descriptor Projection     34)  Export TorchScript Model

@@ -37,13 +37,15 @@ def _get_symbol(z: int) -> str:
 def _detect_model_type(checkpoint_path: str) -> str:
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     hp = ckpt.get("hyper_parameters", {})
-    if "mtp_level" in hp:
-        return "mtp"
     if "n_radial_basis" in hp:
         return "nep"
+    if "mtp_level" in hp and "num_neurons" in hp:
+        return "nnmtp"
+    if "mtp_level" in hp:
+        return "mtp"
     raise ValueError(
         "Cannot detect model type from checkpoint. "
-        "Expected 'mtp_level' or 'n_radial_basis' in hyper_parameters."
+        "Expected 'mtp_level'/'num_neurons' or 'n_radial_basis' in hyper_parameters."
     )
 
 
@@ -56,6 +58,9 @@ def _build_model(checkpoint_path: str, dataset_path: str, device: str):
     if model_type == "mtp":
         from ai2pot.models.mtp.linear_mtp_utils import LinearMtp4Extxyz
         return LinearMtp4Extxyz(checkpoint_path=checkpoint_path, testset_path=dataset_path, map_location=device)
+    elif model_type == "nnmtp":
+        from ai2pot.models.mtp.nn_mtp_utils import NNMtp4Extxyz
+        return NNMtp4Extxyz(checkpoint_path=checkpoint_path, testset_path=dataset_path, map_location=device)
     else:
         from ai2pot.models.nep.nep_utils import Nep4Extxyz
         return Nep4Extxyz(checkpoint_path=checkpoint_path, testset_path=dataset_path, map_location=device)

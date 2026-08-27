@@ -9,13 +9,15 @@ from ai2pot_cli.menu import print_section, print_kv, print_sep, print_error, pri
 def _detect_model_type(checkpoint_path: str) -> str:
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     hp = ckpt.get("hyper_parameters", {})
-    if "mtp_level" in hp:
-        return "mtp"
     if "n_radial_basis" in hp:
         return "nep"
+    if "mtp_level" in hp and "num_neurons" in hp:
+        return "nnmtp"
+    if "mtp_level" in hp:
+        return "mtp"
     raise ValueError(
         "Cannot detect model type from checkpoint. "
-        "Expected 'mtp_level' or 'n_radial_basis' in hyper_parameters."
+        "Expected 'mtp_level'/'num_neurons' or 'n_radial_basis' in hyper_parameters."
     )
 
 
@@ -35,6 +37,9 @@ def serialize_model(checkpoint_path: str, output_path: str = "./ai2pot_libtorch.
     if model_type == "mtp":
         from ai2pot.models.mtp.linear_mtp_utils import LinearMtpSerializer
         LinearMtpSerializer.serialize(ckpt_path=checkpoint_path, pt_path=output_path)
+    elif model_type == "nnmtp":
+        from ai2pot.models.mtp.nn_mtp_utils import NNMtpSerializer
+        NNMtpSerializer.serialize(ckpt_path=checkpoint_path, pt_path=output_path)
     else:
         from ai2pot.models.nep.nep_utils import NepSerializer
         NepSerializer.serialize(ckpt_path=checkpoint_path, pt_path=output_path)

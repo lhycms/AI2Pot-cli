@@ -1,4 +1,4 @@
-"""Training module -- reads a JSON/JSONC config and runs NEP or MTP training."""
+"""Training module -- reads a JSON/JSONC config and runs NEP, MTP, or NNMTP training."""
 
 import json5
 import os
@@ -11,9 +11,10 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
 
 from ai2pot.data import ExtxyzDataset, ExtxyzDataModule
-from ai2pot.models.potential_train import LitNep, LitLinearMtp
+from ai2pot.models.potential_train import LitNep, LitLinearMtp, LitNNMtp
 from ai2pot.models.nep.nep_train_utils import NepDescriptorNormCallback
 from ai2pot.models.mtp.linear_mtp_train_utils import LinearMtpDescriptorNormCallback
+from ai2pot.models.mtp.nn_mtp_train_utils import NNMtpDescriptorNormCallback
 from ai2pot.models.potential_train_utils import EnergyShiftCallback
 
 # When extend_training is enabled, replace the CosineAnnealingLR with a fresh
@@ -101,16 +102,21 @@ def run_train(config_path: str) -> None:
     type_map: List[int] = _resolve_type_map(model_cfg["type_map"], trainset_path)
 
     # --- Detect model type ---
-    is_mtp: bool = "mtp_level" in model_cfg
+    if "mtp_level" in model_cfg and "num_neurons" in model_cfg:
+        model_type: str = "nnmtp"
+    elif "mtp_level" in model_cfg:
+        model_type = "mtp"
+    else:
+        model_type = "nep"
     fit_virial: bool = model_cfg.get("fit_virial", False)
 
     # --- Validate rcut >= model radius ---
     rcut: float = dataset_cfg["rcut"]
-    if is_mtp:
+    if model_type in ("mtp", "nnmtp"):
         rmax: float = model_cfg["rmax"]
         if rcut < rmax:
             raise ValueError(
-                f"Dataset.rcut ({rcut}) must be >= Model.rmax ({rmax}) for MTP. "
+                f"Dataset.rcut ({rcut}) must be >= Model.rmax ({rmax}) for {model_type.upper()}. "
                 "Increase rcut or decrease rmax in your config."
             )
     else:
@@ -152,7 +158,15 @@ def run_train(config_path: str) -> None:
         max_clip_norm=model_cfg.get("max_clip_norm", 10.0),
     )
 
-    if is_mtp:
+    if model_type == "nnmtp":
+        lit_model = LitNNMtp(
+            mtp_level=model_cfg["mtp_level"],
+            num_neurons=model_cfg["num_neurons"],
+            rmax=model_cfg["rmax"],
+            rmin=model_cfg.get("rmin", 0.0),
+            **common_kwargs,
+        ).to(dtype)
+    elif model_type == "mtp":
         lit_model = LitLinearMtp(
             mtp_level=model_cfg["mtp_level"],
             rmax=model_cfg["rmax"],
@@ -228,7 +242,9 @@ def run_train(config_path: str) -> None:
 
     if not is_resume:
         if trainer_cfg.get("enable_descriptor_norm", True):
-            if is_mtp:
+            if model_type == "nnmtp":
+                callbacks.append(NNMtpDescriptorNormCallback())
+            elif model_type == "mtp":
                 callbacks.append(LinearMtpDescriptorNormCallback())
             else:
                 callbacks.append(NepDescriptorNormCallback())

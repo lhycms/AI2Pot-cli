@@ -25,10 +25,12 @@ MAIN_SECTIONS = [
         (13, "Analyse Dataset"),
         (14, "MTP Active Learning"),
         (15, "NEP Active Learning"),
+        (16, "NNMTP Active Learning"),
     ]),
     ("Potential Training Input", [
         (21, "MTP Training Input"),
         (22, "NEP Training Input"),
+        (23, "NNMTP Training Input"),
     ]),
     ("Postprocessing", [
         (31, "Plot E/F/V Parity"),
@@ -97,6 +99,8 @@ def _interactive_loop():
             print(" -> MTP Active Learning (not yet implemented)\n")
         elif choice == 15:
             print(" -> NEP Active Learning (not yet implemented)\n")
+        elif choice == 16:
+            print(" -> NNMTP Active Learning (not yet implemented)\n")
 
         # --- Potential Training Input ---
         elif choice == 21:
@@ -106,6 +110,10 @@ def _interactive_loop():
         elif choice == 22:
             from ai2pot_cli.menus.potential_train.nep_train_input import generate_nep_input
             generate_nep_input()
+            sys.exit(0)
+        elif choice == 23:
+            from ai2pot_cli.menus.potential_train.nnmtp_train_input import generate_nnmtp_input
+            generate_nnmtp_input()
             sys.exit(0)
 
         # --- Postprocessing ---

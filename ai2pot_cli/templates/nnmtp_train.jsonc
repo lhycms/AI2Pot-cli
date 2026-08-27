@@ -1,0 +1,159 @@
+{
+    "Trainer": {
+        // ==========================================================
+        //  Essential parameters
+        // ==========================================================
+
+        // Maximum number of training epochs.
+        "max_epochs": 200,
+
+        // Training device: "gpu" or "cpu".
+        "accelerator": "gpu",
+
+        // Whether to normalize MTP descriptors before training.
+        "enable_descriptor_norm": true,
+
+        // Whether to shift atomic reference energies before training.
+        "enable_energy_shift": false,
+
+
+        // ==========================================================
+        //  Advanced parameters
+        // ==========================================================
+
+        // Number of devices used by Lightning Trainer.
+        "devices": 1,
+
+        // Set to 0 to disable validation during training.
+        "limit_val_batches": 0,
+
+        // Logging frequency in training steps.
+        "log_every_n_steps": 500,
+
+        // Directory for Lightning CSV/TensorBoard logs.
+        "save_dir": "./",
+
+        // Random seed for reproducibility.
+        "seed": 42,
+
+        // Number of CPU threads used by PyTorch.
+        "num_threads": 16,
+
+        // Whether to show tqdm progress bar during training.
+        "enable_progress_bar": false
+    },
+
+    "Resume": {
+        // resume_ckpt   lr_restart   behavior
+        // ───────────   ──────────   ──────────────────────────────────
+        // null           —             train from scratch
+        // path           null          plain resume, scheduler restored as-is
+        // path           value         extended training, fresh cosine curve:
+        //                                current LR > lr_end → start from current LR
+        //                                current LR ≈ lr_end → raise to lr_restart first
+        "resume_ckpt": null,
+        "lr_restart": null
+    },
+
+    "Model": {
+        // ==========================================================
+        //  Essential parameters
+        // ==========================================================
+
+        // Maximum number of neighboring atoms stored for each atom.
+        "umax_num_neigh_atoms": 200,
+
+        // Whether to fit virial/stress.
+        "fit_virial": true,
+
+        // MTP level (number of radial basis functions).
+        "mtp_level": 18,
+
+        // Number of Chebyshev basis functions.
+        "chebyshev_size": 8,
+
+        // Number of neurons in the NNMTP fitting network.
+        "num_neurons": 30,
+
+        // Radial cutoff radius in Angstrom.
+        "rmax": 5.0,
+
+        // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
+        "zbl_rmax": 0.0,
+
+
+        // ==========================================================
+        //  Advanced parameters
+        // ==========================================================
+
+        // Element type map. Use "auto" to infer from the training extxyz file.
+        "type_map": "auto",
+
+        // Inner cutoff radius in Angstrom.
+        "rmin": 0.0,
+
+        // Inner cutoff of ZBL correction. Set 0.0 to disable ZBL.
+        "zbl_rmin": 0.0,
+
+        // Initial learning rate.
+        "lr_start": 0.01,
+
+        // Final learning rate.
+        "lr_end": 0.0001,
+
+        // Initial and final energy loss weights.
+        "e_wgt_start": 0.1,
+        "e_wgt_end": 2.0,
+
+        // Initial and final force loss weights.
+        "f_wgt_start": 10.0,
+        "f_wgt_end": 1.0,
+
+        // Initial and final virial loss weights.
+        "v_wgt_start": 0.1,
+        "v_wgt_end": 1.0,
+
+        // Maximum gradient clipping norm.
+        "max_clip_norm": 10.0
+    },
+
+    "Dataset": {
+        // ==========================================================
+        //  Essential parameters
+        // ==========================================================
+
+        // Path to training dataset in extxyz format.
+        "trainset_path": "./train.xyz",
+
+        // Batch size for Lightning DataModule.
+        "batch_size": 16,
+
+        // Neighbor-list cutoff radius. Usually >= rmax.
+        "rcut": 5.0,
+
+        // Floating-point precision: "float32" or "float64".
+        "torch_float_dtype": "float32",
+
+
+        // ==========================================================
+        //  Advanced parameters
+        // ==========================================================
+
+        // Path to validation dataset.
+        // Cannot be null.
+        "validset_path": "./train.xyz",
+
+        // Path to test dataset.
+        "testset_path": null,
+
+        // Path to prediction dataset.
+        "predict_path": null,
+
+        // Periodic boundary conditions along x, y, z.
+        "pbc_xyz": [true, true, true],
+
+        // Whether to sort atoms before constructing dataset.
+        "sort": false
+
+    }
+}
