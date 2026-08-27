@@ -67,7 +67,7 @@
         "fit_virial": true,
 
         // MTP level (number of radial basis functions).
-        "mtp_level": 18,
+        "mtp_level": 16,
 
         // Number of Chebyshev basis functions.
         "chebyshev_size": 8,
