@@ -76,6 +76,7 @@
         "rmax": 5.0,
 
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
+        // Inner cutoff is fixed to zbl_rmax / 2.0.
         "zbl_rmax": 0.0,
 
 
@@ -88,9 +89,6 @@
 
         // Inner cutoff radius in Angstrom.
         "rmin": 0.0,
-
-        // Inner cutoff of ZBL correction. Set 0.0 to disable ZBL.
-        "zbl_rmin": 0.0,
 
         // Initial learning rate.
         "lr_start": 0.01,

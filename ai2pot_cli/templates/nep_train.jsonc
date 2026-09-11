@@ -88,6 +88,7 @@
         "rmax_angular": 4.0,
 
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
+        // Inner cutoff is fixed to zbl_rmax / 2.0.
         "zbl_rmax": 0.0,
 
 
@@ -97,9 +98,6 @@
 
         // Element type map. Use "auto" to infer from the training extxyz file.
         "type_map": "auto",
-
-        // Inner cutoff of ZBL correction. Set 0.0 to disable ZBL.
-        "zbl_rmin": 0.0,
 
         // Initial learning rate.
         "lr_start": 0.001,
