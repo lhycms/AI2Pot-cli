@@ -96,17 +96,17 @@
         // Final learning rate.
         "lr_end": 0.0001,
 
-        // Energy loss weights for the first and second half of training.
-        "e_wgt_start": 0.01,
-        "e_wgt_end": 1.0,
+        // Initial and final energy loss weights.
+        "e_wgt_start": 0.1,
+        "e_wgt_end": 2.0,
 
-        // Force loss weights for the first and second half of training.
-        "f_wgt_start": 1.0,
-        "f_wgt_end": 0.05,
+        // Initial and final force loss weights.
+        "f_wgt_start": 10.0,
+        "f_wgt_end": 1.0,
 
-        // Virial loss weights for the first and second half of training.
-        "v_wgt_start": 0.01,
-        "v_wgt_end": 0.1,
+        // Initial and final virial loss weights.
+        "v_wgt_start": 0.1,
+        "v_wgt_end": 0.5,
 
         // Maximum gradient clipping norm.
         "max_clip_norm": 10.0,
