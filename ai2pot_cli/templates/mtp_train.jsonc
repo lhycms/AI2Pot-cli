@@ -109,7 +109,12 @@
         "v_wgt_end": 0.5,
 
         // Maximum gradient clipping norm.
-        "max_clip_norm": 10.0
+        "max_clip_norm": 10.0,
+
+        // AdamW weight decay coefficient.
+        // If gradients become NaN during training, this value can be
+        // moderately increased.
+        "weight_decay": 0.0
     },
 
     "Dataset": {

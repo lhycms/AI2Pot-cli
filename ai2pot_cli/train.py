@@ -155,6 +155,7 @@ def run_train(config_path: str) -> None:
         v_wgt_start=model_cfg["v_wgt_start"],
         v_wgt_end=model_cfg["v_wgt_end"],
         max_clip_norm=model_cfg.get("max_clip_norm", 10.0),
+        weight_decay=model_cfg.get("weight_decay", 0.0),
     )
 
     if model_type == "nnmtp":
