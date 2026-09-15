@@ -101,7 +101,7 @@
         "e_wgt_end": 2.0,
 
         // Initial and final force loss weights.
-        "f_wgt_start": 10.0,
+        "f_wgt_start": 50.0,
         "f_wgt_end": 1.0,
 
         // Initial and final virial loss weights.
