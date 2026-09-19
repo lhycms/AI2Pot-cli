@@ -13,7 +13,7 @@ _COMMENT_RE = re.compile(r"#|//")
 _KEYWORDS = ("cks", "dks")
 
 
-def _symbol_of(z: int) -> str:
+def symbol_of(z: int) -> str:
     """Atomic number -> element symbol."""
     if 0 < z < len(chemical_symbols):
         return chemical_symbols[z]
@@ -22,7 +22,7 @@ def _symbol_of(z: int) -> str:
 
 def format_type_map(type_map: Sequence[int]) -> str:
     """Atomic-number type map -> "Ge, Sb, Te"."""
-    return ", ".join(_symbol_of(z) for z in type_map)
+    return ", ".join(symbol_of(z) for z in type_map)
 
 
 def _resolve_element(token: str, path: str, lineno: int) -> int:
@@ -125,16 +125,16 @@ def load_zbl_in(path: str, type_map: Sequence[int]) -> Tuple[List[float], List[f
             for z in (element_i, element_j):
                 if z not in type_map:
                     raise ValueError(
-                        f"{path}:{lineno}: element {_symbol_of(z)} is not in the type map "
+                        f"{path}:{lineno}: element {symbol_of(z)} is not in the type map "
                         f"({format_type_map(type_map)})")
             if (element_i, element_j) in table:
                 raise ValueError(
                     f"{path}:{lineno}: duplicate entry for pair "
-                    f"{_symbol_of(element_i)}-{_symbol_of(element_j)}")
+                    f"{symbol_of(element_i)}-{symbol_of(element_j)}")
             table[(element_i, element_j)] = (cks, dks)
 
     # Each pair is reported once: (i, j) and (j, i) are satisfied by the same line.
-    missing = [f"{_symbol_of(z_i)}-{_symbol_of(z_j)}"
+    missing = [f"{symbol_of(z_i)}-{symbol_of(z_j)}"
                for i, z_i in enumerate(type_map)
                for j, z_j in enumerate(type_map)
                if j >= i and (z_i, z_j) not in table and (z_j, z_i) not in table]

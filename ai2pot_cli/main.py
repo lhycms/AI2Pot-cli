@@ -1,6 +1,7 @@
 """AI2Pot CLI -- Main entry point."""
 
 import argparse
+import os
 import sys
 from typing import List, Tuple
 
@@ -32,6 +33,7 @@ MAIN_SECTIONS = [
         (21, "MTP Training Input"),
         (22, "NEP Training Input"),
         (23, "NNMTP Training Input"),
+        (24, "ZBL Input"),
     ]),
     ("Postprocessing", [
         (31, "Plot E/F/V Parity"),
@@ -116,6 +118,17 @@ def _interactive_loop():
         elif choice == 23:
             from ai2pot_cli.menus.potential_train.nnmtp_train_input import generate_nnmtp_input
             generate_nnmtp_input()
+            sys.exit(0)
+        elif choice == 24:
+            trainset_path = input(" Trainset path (.xyz): ").strip()
+            if not trainset_path:
+                print_warning("No file path provided.")
+                continue
+            if not os.path.isfile(trainset_path):
+                print_error(f"File not found: {trainset_path}")
+                continue
+            from ai2pot_cli.menus.potential_train.zbl_input import generate_zbl_input
+            generate_zbl_input(trainset_path)
             sys.exit(0)
 
         # --- Postprocessing ---
