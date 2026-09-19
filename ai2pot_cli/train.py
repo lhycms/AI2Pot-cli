@@ -17,6 +17,9 @@ from ai2pot.models.mtp.linear_mtp_train_utils import LinearMtpDescriptorNormCall
 from ai2pot.models.mtp.nn_mtp_train_utils import NNMtpDescriptorNormCallback
 from ai2pot.models.potential_train_utils import EnergyShiftCallback
 
+from ai2pot_cli.menu import print_success, print_warning
+from ai2pot_cli.zbl_in import format_type_map, load_zbl_in
+
 # When extend_training is enabled, replace the CosineAnnealingLR with a fresh
 # one whose T_max = remaining_steps:
 #
@@ -139,6 +142,25 @@ def run_train(config_path: str) -> None:
                 "Set fit_virial=false in your config."
             )
 
+    # --- ZBL pair parameters (optional) ---
+    # A missing zbl.in is not an error: AI2Pot then keeps its built-in per-pair
+    # ZBL parameters (zbl_cks_list / zbl_dks_list stay None).
+    zbl_in_path = model_cfg.get("zbl_in_path")
+    zbl_cks_list = None
+    zbl_dks_list = None
+    if zbl_in_path and not os.path.isfile(zbl_in_path):
+        print_success(f"No zbl.in found at {zbl_in_path}; "
+                      "using the AI2Pot default ZBL parameters.")
+        zbl_in_path = None
+    if zbl_in_path:
+        zbl_cks_list, zbl_dks_list = load_zbl_in(zbl_in_path, type_map)
+        print_success(
+            f"Loaded ZBL parameters from {zbl_in_path} "
+            f"({len(type_map) ** 2} element pair(s), type map: {format_type_map(type_map)})")
+        if model_cfg.get("zbl_rmax", 0.0) <= 0.0:
+            print_warning("zbl_rmax = 0 disables the ZBL correction; "
+                          "the loaded ZBL parameters will not be used.")
+
     # --- Build Model ---
     common_kwargs = dict(
         type_map=type_map,
@@ -147,6 +169,8 @@ def run_train(config_path: str) -> None:
         chebyshev_size=model_cfg["chebyshev_size"],
         zbl_rmax=model_cfg.get("zbl_rmax", 0.0),
         zbl_typewise_factor=model_cfg.get("zbl_typewise_factor", 0.7),
+        zbl_cks_list=zbl_cks_list,
+        zbl_dks_list=zbl_dks_list,
         lr_start=model_cfg["lr_start"],
         lr_end=model_cfg["lr_end"],
         e_wgt_start=model_cfg["e_wgt_start"],

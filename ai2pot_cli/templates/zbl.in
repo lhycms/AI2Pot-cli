@@ -1,0 +1,19 @@
+# ZBL pair parameters for a Ge-Sb-Te system.
+#
+# One element pair per line: <element_i>-<element_j> cks(4 values) dks(4 values)
+#   - "Ge Te" (space separated) is also accepted, and the keywords "cks"/"dks"
+#     may be omitted (4 cks followed by 4 dks).
+#   - Either order of a pair may be written, e.g. Ge-Te or Te-Ge.
+#   - Every pair of the type map must be covered; # and // start a comment.
+#
+# The values below are the AI2Pot built-in ZBL parameters, i.e. the same for
+# every element pair; replace them per pair when needed.
+#
+# Reference in the training config with:  "zbl_in_path": "./zbl.in"
+
+Ge-Ge   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
+Ge-Sb   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
+Ge-Te   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
+Sb-Sb   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
+Sb-Te   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
+Te-Te   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
