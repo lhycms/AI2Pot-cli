@@ -3,12 +3,7 @@
 import os
 
 from ai2pot_cli.menu import show_generation_success
-from ai2pot_cli.zbl_in import symbol_of
-
-# AI2Pot built-in ZBL parameters (ai2pot/models/mtp/nn_mtp.py::_init_zbl_params);
-# the same values are used for every element pair unless the user edits them.
-DEFAULT_ZBL_CKS = [0.18175, 0.50986, 0.28022, 0.02817]
-DEFAULT_ZBL_DKS = [3.1998, 0.94229, 0.4029, 0.20162]
+from ai2pot_cli.zbl_in import DEFAULT_ZBL_CKS, DEFAULT_ZBL_DKS, symbol_of
 
 _HEADER = """\
 # ZBL pair parameters generated from the training set {dataset}.
@@ -18,7 +13,8 @@ _HEADER = """\
 #   - "Ge Te" (space separated) is also accepted, and the keywords "cks"/"dks"
 #     may be omitted (4 cks followed by 4 dks).
 #   - Either order of a pair may be written, e.g. Ge-Te or Te-Ge.
-#   - Every pair of the type map must be covered; # and // start a comment.
+#   - Pairs left out of this file fall back to the AI2Pot built-in ZBL
+#     parameters; # and // start a comment.
 #
 # The values below are the AI2Pot built-in ZBL parameters, i.e. the same for
 # every element pair; replace them per pair when needed.

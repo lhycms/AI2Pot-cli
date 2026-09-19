@@ -4,7 +4,8 @@
 #   - "Ge Te" (space separated) is also accepted, and the keywords "cks"/"dks"
 #     may be omitted (4 cks followed by 4 dks).
 #   - Either order of a pair may be written, e.g. Ge-Te or Te-Ge.
-#   - Every pair of the type map must be covered; # and // start a comment.
+#   - Pairs left out of this file fall back to the AI2Pot built-in ZBL
+#     parameters; # and // start a comment.
 #
 # The values below are the AI2Pot built-in ZBL parameters, i.e. the same for
 # every element pair; replace them per pair when needed.

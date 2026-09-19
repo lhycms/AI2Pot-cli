@@ -153,10 +153,15 @@ def run_train(config_path: str) -> None:
                       "using the AI2Pot default ZBL parameters.")
         zbl_in_path = None
     if zbl_in_path:
-        zbl_cks_list, zbl_dks_list = load_zbl_in(zbl_in_path, type_map)
+        zbl_cks_list, zbl_dks_list, default_pairs = load_zbl_in(zbl_in_path, type_map)
         print_success(
             f"Loaded ZBL parameters from {zbl_in_path} "
             f"({len(type_map) ** 2} element pair(s), type map: {format_type_map(type_map)})")
+        if default_pairs:
+            print_success(
+                f"No ZBL parameters for {len(default_pairs)} element pair(s) in "
+                f"{zbl_in_path}; using the AI2Pot default ZBL parameters for: "
+                f"{', '.join(default_pairs)}")
         if model_cfg.get("zbl_rmax", 0.0) <= 0.0:
             print_warning("zbl_rmax = 0 disables the ZBL correction; "
                           "the loaded ZBL parameters will not be used.")

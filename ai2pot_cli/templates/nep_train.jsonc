@@ -99,9 +99,9 @@
         // Per-element-pair ZBL parameters. Path to a zbl.in file with one element
         // pair per line, e.g. "Ge-Te 0.18175 0.50986 0.28022 0.02817 3.1998 0.94229 0.4029 0.20162"
         // (4 cks followed by 4 dks; the keywords "cks" and "dks" may be written
-        // before each group). Every pair of the type map must be listed, in either
-        // order. If null, or if the file does not exist, the built-in ZBL
-        // parameters are used for every element pair.
+        // before each group). Either order of a pair may be written. If null, if
+        // the file does not exist, or for pairs the file does not list, the
+        // built-in ZBL parameters are used for those element pairs.
         "zbl_in_path": null,
 
 

@@ -12,6 +12,11 @@ _TOKEN_SPLIT_RE = re.compile(r"[\s,;]+")
 _COMMENT_RE = re.compile(r"#|//")
 _KEYWORDS = ("cks", "dks")
 
+# AI2Pot built-in ZBL parameters (ai2pot/models/mtp/nn_mtp.py::_init_zbl_params);
+# used for every element pair that the zbl.in file does not cover.
+DEFAULT_ZBL_CKS = [0.18175, 0.50986, 0.28022, 0.02817]
+DEFAULT_ZBL_DKS = [3.1998, 0.94229, 0.4029, 0.20162]
+
 
 def symbol_of(z: int) -> str:
     """Atomic number -> element symbol."""
@@ -92,7 +97,7 @@ def _parse_line(line: str, path: str, lineno: int) -> Tuple[int, int, List[float
             cks, dks)
 
 
-def load_zbl_in(path: str, type_map: Sequence[int]) -> Tuple[List[float], List[float]]:
+def load_zbl_in(path: str, type_map: Sequence[int]) -> Tuple[List[float], List[float], List[str]]:
     """Expand a zbl.in file into the flat ZBL parameter lists of AI2Pot models.
 
     Each non-empty line of the file holds one element pair::
@@ -100,15 +105,16 @@ def load_zbl_in(path: str, type_map: Sequence[int]) -> Tuple[List[float], List[f
         Ge-Ge   0.18175 0.50986 0.28022 0.02817   3.1998 0.94229 0.4029 0.20162
         Ge-Sb   cks 0.18175 0.50986 0.28022 0.02817   dks 3.1998 0.94229 0.4029 0.20162
 
-    Lines may be written for either order of a pair (Ge-Te or Te-Ge), and every pair
-    of ``type_map`` must be covered.
+    Lines may be written for either order of a pair (Ge-Te or Te-Ge). Pairs of the
+    type map that the file does not cover keep the AI2Pot built-in ZBL parameters.
 
     AI2Pot stores both ZBL tensors as ntypes*ntypes blocks of 4 values; the block of
     the pair (i, j) sits at offset (i*ntypes + j)*4, where i and j are *type indices*,
     i.e. positions in ``type_map``.
 
-    Returns (zbl_cks_list, zbl_dks_list); raises ValueError on malformed input or when
-    an element pair is missing.
+    Returns (zbl_cks_list, zbl_dks_list, default_pairs), where default_pairs lists the
+    element pairs that fell back to DEFAULT_ZBL_CKS / DEFAULT_ZBL_DKS; raises ValueError
+    on malformed input.
     """
     if not os.path.isfile(path):
         raise ValueError(f"zbl.in file not found: {path}")
@@ -134,23 +140,17 @@ def load_zbl_in(path: str, type_map: Sequence[int]) -> Tuple[List[float], List[f
             table[(element_i, element_j)] = (cks, dks)
 
     # Each pair is reported once: (i, j) and (j, i) are satisfied by the same line.
-    missing = [f"{symbol_of(z_i)}-{symbol_of(z_j)}"
-               for i, z_i in enumerate(type_map)
-               for j, z_j in enumerate(type_map)
-               if j >= i and (z_i, z_j) not in table and (z_j, z_i) not in table]
-    if missing:
-        raise ValueError(
-            f"{path}: missing ZBL parameters for {len(missing)} element pair(s) of the "
-            f"type map ({format_type_map(type_map)}): {', '.join(missing)}")
+    default_pairs = [f"{symbol_of(z_i)}-{symbol_of(z_j)}"
+                     for i, z_i in enumerate(type_map)
+                     for j, z_j in enumerate(type_map)
+                     if j >= i and (z_i, z_j) not in table and (z_j, z_i) not in table]
 
     cks_list: List[float] = []
     dks_list: List[float] = []
     for z_i in type_map:
         for z_j in type_map:
-            pair = table.get((z_i, z_j))
-            if pair is None:
-                pair = table[(z_j, z_i)]
-            pair_cks, pair_dks = pair
+            pair = table.get((z_i, z_j)) or table.get((z_j, z_i))
+            pair_cks, pair_dks = pair if pair is not None else (DEFAULT_ZBL_CKS, DEFAULT_ZBL_DKS)
             cks_list.extend(pair_cks)
             dks_list.extend(pair_dks)
-    return cks_list, dks_list
+    return cks_list, dks_list, default_pairs
