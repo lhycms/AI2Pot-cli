@@ -88,8 +88,13 @@
         "rmax_angular": 4.0,
 
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
-        // Inner cutoff is fixed to zbl_rmax / 2.0.
         "zbl_rmax": 0.0,
+
+        // Pairwise ZBL cutoff factor: the cutoff for each element pair is
+        //   min(zbl_rmax, zbl_typewise_factor * (r_cov_i + r_cov_j)).
+        // If the pair cutoff is below zbl_rmax, ZBL applies from distance 0
+        // (no inner cutoff); otherwise the inner cutoff is zbl_rmax / 2.0.
+        "zbl_typewise_factor": 0.7,
 
 
         // ==========================================================

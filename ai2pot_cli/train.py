@@ -146,6 +146,7 @@ def run_train(config_path: str) -> None:
         fit_virial=fit_virial,
         chebyshev_size=model_cfg["chebyshev_size"],
         zbl_rmax=model_cfg.get("zbl_rmax", 0.0),
+        zbl_typewise_factor=model_cfg.get("zbl_typewise_factor", 0.7),
         lr_start=model_cfg["lr_start"],
         lr_end=model_cfg["lr_end"],
         e_wgt_start=model_cfg["e_wgt_start"],
