@@ -164,7 +164,7 @@ def _interactive_loop():
             if not checkpoint_path:
                 print_warning("No checkpoint path provided.")
                 continue
-            distance_range = input(" ZBL distance range (A) [default: 0.5-6.0]: ").strip()
+            distance_range = input(" ZBL distance range (A) [default: 0.5-4.0]: ").strip()
             from ai2pot_cli.menus.postprocessing.plot_zbl import plot_zbl
             try:
                 plot_zbl(checkpoint_path, distance_range=distance_range or None)

@@ -33,10 +33,14 @@ PLOT_NAME = "zbl_plot.png"
 ENERGY_NPY_NAME = "zbl_energy-distance.npy"
 FORCE_NPY_NAME = "zbl_force-distance.npy"
 
+# r -> 0 is excluded: the ZBL term diverges there (E -> +inf, F -> nan).
 DEFAULT_RMIN = 0.5
-DEFAULT_RMAX = 6.0
+DEFAULT_RMAX = 4.0
 DEFAULT_N_POINTS = 300
 MIN_BOX_LENGTH = 20.0
+# ZBL curves span ~1e6 eV (1/r wall) down to the eV-scale MTP well, which a linear
+# axis cannot show; symlog keeps the well (incl. negative values) visible.
+SYMLOG_LINTHRESH = 1.0
 
 PAIR_COLORS = [
     "#0072B2",  # blue
@@ -102,14 +106,23 @@ def _build_calculator(checkpoint_path: str, device: str):
 
 
 def _parse_distance_range(distance_range: Union[None, str, Sequence[float]]) -> Tuple[float, float]:
-    """Return (rmin, rmax) from None | (rmin, rmax) | '0.5-6.0' | '0.5 6.0' | '6.0'."""
+    """Return (rmin, rmax) from None | (rmin, rmax) | '0.5-4.0' | '0.5 4.0' | '4.0' (single value as upper bound)."""
     if distance_range is None:
         return DEFAULT_RMIN, DEFAULT_RMAX
     if isinstance(distance_range, (tuple, list)):
         values = [float(v) for v in distance_range]
     else:
-        tokens = re.split(r"[-\s,~]+", str(distance_range).strip())
-        values = [float(t) for t in tokens if t]
+        values = []
+        for token in re.split(r"[-\s,~]+", str(distance_range).strip()):
+            if not token:
+                continue
+            try:
+                values.append(float(token))
+            except ValueError:
+                raise ValueError(
+                    f"Invalid ZBL distance range '{distance_range}'. "
+                    "Expected a range like 0.5-4.0 or a single upper bound like 4.0."
+                )
     if not values:
         return DEFAULT_RMIN, DEFAULT_RMAX
     if len(values) == 1:
@@ -117,13 +130,13 @@ def _parse_distance_range(distance_range: Union[None, str, Sequence[float]]) -> 
     if len(values) != 2:
         raise ValueError(
             f"Invalid ZBL distance range '{distance_range}'. "
-            "Expected a range like 0.5-6.0 or a single upper bound like 6.0."
+            "Expected a range like 0.5-4.0 or a single upper bound like 4.0."
         )
     rmin, rmax = values
     if rmin <= 0.0 or rmax <= rmin:
         raise ValueError(
             f"Invalid ZBL distance range '{distance_range}'. "
-            "Expected 0 < min < max."
+            "Expected 0 < min < max (r = 0 diverges for ZBL)."
         )
     return rmin, rmax
 
@@ -207,6 +220,8 @@ def _make_zbl_plot(labels: List[str],
             ax.axvline(zbl_rmax, color="grey", linestyle="--", linewidth=1.2,
                        label="ZBL Rmax")
         ax.axhline(0.0, color="black", linestyle=":", linewidth=1.0)
+        ax.set_yscale("symlog", linthresh=SYMLOG_LINTHRESH)
+        ax.set_xlim(float(distances.min()), float(distances.max()))
         ax.set_xlabel("Distance (A)")
         ax.set_ylabel(ylabel)
         ax.legend(loc="best", framealpha=0.8, fontsize=12, ncol=legend_cols)
@@ -230,8 +245,9 @@ def plot_zbl(
 
     Args:
         checkpoint_path: Path to the .ckpt checkpoint file.
-        distance_range: None (default 0.5-6.0 A), (rmin, rmax), or a string such as
-            "0.5-6.0" / "0.5 6.0" / "6.0" (single value as upper bound).
+        distance_range: None (default 0.5-4.0 A), (rmin, rmax), or a string such as
+            "0.5-4.0" / "0.5 4.0" / "4.0" (single value as upper bound). rmin must be
+            > 0 because the ZBL term diverges for r -> 0.
         n_points: Number of distances scanned.
         output_path: Path of the plot; defaults to ./zbl_analysis/zbl_plot.png.
     """
@@ -290,15 +306,5 @@ def plot_zbl(
     print_kv("Output Plot", abs_output)
     print_kv("Energy Data", energy_path)
     print_kv("Force Data", force_path)
-    print()
-
-    for label, curve_e, curve_f in zip(labels, energy, force):
-        idx = int(np.argmin(curve_e))
-        print(f"  {'Pair ' + label:<18}: "
-              f"E min = {curve_e[idx]:>9.3f} eV | "
-              f"r min = {distances[idx]:>5.2f} A | "
-              f"F max = {curve_f.max():>10.2f} eV/A")
-
-    print_kv("Data Layout", "row 0 = distance (A), rows 1..N = pairs (in the order above)")
     print_sep()
     print()
