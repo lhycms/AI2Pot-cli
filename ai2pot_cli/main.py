@@ -10,6 +10,7 @@ from ai2pot_cli.menu import (
     get_choice,
     print_warning,
     print_success,
+    print_error,
 )
 
 VERSION: str = "1.2.0"
@@ -37,6 +38,7 @@ MAIN_SECTIONS = [
         (32, "Plot Learning Curve"),
         (33, "Plot Descriptor Projection"),
         (34, "Export TorchScript Model"),
+        (35, "Plot ZBL"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -156,6 +158,19 @@ def _interactive_loop():
             output_path = input(" Output path [default: ./ai2pot_libtorch.pt]: ").strip() or "./ai2pot_libtorch.pt"
             from ai2pot_cli.menus.postprocessing.serialize_model import serialize_model
             serialize_model(checkpoint_path, output_path=output_path)
+            sys.exit(0)
+        elif choice == 35:
+            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
+            if not checkpoint_path:
+                print_warning("No checkpoint path provided.")
+                continue
+            distance_range = input(" ZBL distance range (A) [default: 0.5-6.0]: ").strip()
+            from ai2pot_cli.menus.postprocessing.plot_zbl import plot_zbl
+            try:
+                plot_zbl(checkpoint_path, distance_range=distance_range or None)
+            except ValueError as exc:
+                print_error(str(exc))
+                continue
             sys.exit(0)
 
         # --- MD Utilities ---
