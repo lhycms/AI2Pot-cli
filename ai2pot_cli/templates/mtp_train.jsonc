@@ -78,10 +78,12 @@
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
         "zbl_rmax": 0.0,
 
-        // Pairwise ZBL cutoff factor: the cutoff for each element pair is
-        //   min(zbl_rmax, zbl_typewise_factor * (r_cov_i + r_cov_j)).
+        // Typewise ZBL cutoff factor: when > 0.0, the cutoff for each element
+        // pair is min(zbl_rmax, zbl_typewise_factor * (r_cov_i + r_cov_j)).
         // If the pair cutoff is below zbl_rmax, ZBL applies from distance 0
         // (no inner cutoff); otherwise the inner cutoff is zbl_rmax / 2.0.
+        // Set 0.0 to disable typewise ZBL and apply the same ZBL correction to
+        // all element pairs, with outer cutoff zbl_rmax and inner cutoff zbl_rmax / 2.0.
         "zbl_typewise_factor": 0.7,
 
         // Per-element-pair ZBL parameters. Path to a zbl.in file with one element
