@@ -82,9 +82,11 @@
         // pair is min(zbl_rmax, zbl_typewise_factor * (r_cov_i + r_cov_j)).
         // If the pair cutoff is below zbl_rmax, ZBL applies from distance 0
         // (no inner cutoff); otherwise the inner cutoff is zbl_rmax / 2.0.
-        // Set 0.0 to disable typewise ZBL and apply the same ZBL correction to
-        // all element pairs, with outer cutoff zbl_rmax and inner cutoff zbl_rmax / 2.0.
-        "zbl_typewise_factor": 0.7,
+        // Typewise ZBL is in most cases not suitable for MTP; the standard ZBL
+        // potential is recommended instead, i.e. 0.0 here: all element pairs
+        // then share the same cutoffs (outer zbl_rmax, inner zbl_rmax / 2.0),
+        // while each pair keeps its own cks/dks parameters.
+        "zbl_typewise_factor": 0.0,
 
         // Per-element-pair ZBL parameters. Path to a zbl.in file with one element
         // pair per line, e.g. "Ge-Te 0.18175 0.50986 0.28022 0.02817 3.1998 0.94229 0.4029 0.20162"

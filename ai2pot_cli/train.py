@@ -167,13 +167,16 @@ def run_train(config_path: str) -> None:
                           "the loaded ZBL parameters will not be used.")
 
     # --- Build Model ---
+    # Typewise ZBL is in most cases not suitable for MTP (standard ZBL is
+    # recommended there), so MTP falls back to 0.0 instead of the API default.
+    default_zbl_typewise_factor = 0.0 if model_type == "mtp" else 0.7
     common_kwargs = dict(
         type_map=type_map,
         umax_num_neigh_atoms=model_cfg["umax_num_neigh_atoms"],
         fit_virial=fit_virial,
         chebyshev_size=model_cfg["chebyshev_size"],
         zbl_rmax=model_cfg.get("zbl_rmax", 0.0),
-        zbl_typewise_factor=model_cfg.get("zbl_typewise_factor", 0.7),
+        zbl_typewise_factor=model_cfg.get("zbl_typewise_factor", default_zbl_typewise_factor),
         zbl_cks_list=zbl_cks_list,
         zbl_dks_list=zbl_dks_list,
         lr_start=model_cfg["lr_start"],
