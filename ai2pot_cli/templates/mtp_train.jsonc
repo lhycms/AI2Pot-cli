@@ -114,16 +114,16 @@
         "lr_end": 0.0001,
 
         // Initial and final energy loss weights.
-        "e_wgt_start": 0.1,
+        "e_wgt_start": 1.0,
         "e_wgt_end": 2.0,
 
         // Initial and final force loss weights.
-        "f_wgt_start": 50.0,
-        "f_wgt_end": 1.0,
+        "f_wgt_start": 5.0,
+        "f_wgt_end": 0.1,
 
         // Initial and final virial loss weights.
         "v_wgt_start": 0.1,
-        "v_wgt_end": 0.5,
+        "v_wgt_end": 0.1,
 
         // Maximum gradient clipping norm.
         "max_clip_norm": 10.0,
