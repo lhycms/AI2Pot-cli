@@ -14,7 +14,7 @@ from ai2pot_cli.menu import (
     print_error,
 )
 
-VERSION: str = "1.2.1"
+VERSION: str = "1.2.2"
 
 MAIN_SECTIONS = [
     ("Installation", [
