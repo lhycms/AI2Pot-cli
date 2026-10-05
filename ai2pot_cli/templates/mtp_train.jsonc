@@ -76,7 +76,7 @@
         "rmax": 5.0,
 
         // Outer cutoff of ZBL correction. Set 0.0 to disable ZBL.
-        "zbl_rmax": 0.0,
+        "zbl_rmax": 2.0,
 
         // Typewise ZBL cutoff factor: when > 0.0, the cutoff for each element
         // pair is min(zbl_rmax, zbl_typewise_factor * (r_cov_i + r_cov_j)).
@@ -105,7 +105,7 @@
         "type_map": "auto",
 
         // Inner cutoff radius in Angstrom.
-        "rmin": 0.0,
+        "rmin": 1.0,
 
         // Initial learning rate.
         "lr_start": 0.01,
