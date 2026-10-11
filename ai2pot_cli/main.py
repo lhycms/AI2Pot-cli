@@ -3,7 +3,7 @@
 import argparse
 import os
 import sys
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from ai2pot_cli.menu import (
     show_banner,
@@ -15,6 +15,9 @@ from ai2pot_cli.menu import (
 )
 
 VERSION: str = "1.2.2"
+
+# Training runs write their checkpoints here (relative to the run's working directory)
+DEFAULT_CHECKPOINT: str = "./lightning_logs/version_0/checkpoints/last.ckpt"
 
 MAIN_SECTIONS = [
     ("Installation", [
@@ -41,6 +44,7 @@ MAIN_SECTIONS = [
         (33, "Plot Descriptor Projection"),
         (34, "Export TorchScript Model"),
         (35, "Plot ZBL"),
+        (36, "Plot EOS"),
     ]),
     ("MD Utilities", [
         (91, "Doctor"),
@@ -50,6 +54,15 @@ MAIN_SECTIONS = [
 ]
 
 MAIN_FOOTER: List[Tuple[int, str]] = [(0, "Quit")]
+
+
+def _ask_checkpoint_path() -> Optional[str]:
+    """Prompt for a checkpoint path; empty input uses DEFAULT_CHECKPOINT. Returns None if the file is missing."""
+    checkpoint_path = input(f" Checkpoint path (.ckpt) [default: {DEFAULT_CHECKPOINT}]: ").strip() or DEFAULT_CHECKPOINT
+    if not os.path.isfile(checkpoint_path):
+        print_error(f"File not found: {checkpoint_path}")
+        return None
+    return checkpoint_path
 
 
 def _interactive_loop():
@@ -133,9 +146,8 @@ def _interactive_loop():
 
         # --- Postprocessing ---
         elif choice == 31:
-            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
-            if not checkpoint_path:
-                print_warning("No checkpoint path provided.")
+            checkpoint_path = _ask_checkpoint_path()
+            if checkpoint_path is None:
                 continue
             trainset_path = input(" Trainset path (.xyz) [optional]: ").strip() or None
             testset_path = input(" Testset path (.xyz) [optional]: ").strip() or None
@@ -151,9 +163,8 @@ def _interactive_loop():
             plot_trainlog(csv_path)
             sys.exit(0)
         elif choice == 33:
-            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
-            if not checkpoint_path:
-                print_warning("No checkpoint path provided.")
+            checkpoint_path = _ask_checkpoint_path()
+            if checkpoint_path is None:
                 continue
             trainset_path = input(" Trainset path (.xyz) [optional]: ").strip() or None
             testset_path = input(" Testset path (.xyz) [optional]: ").strip() or None
@@ -164,23 +175,47 @@ def _interactive_loop():
             plot_descriptor_projection(checkpoint_path, trainset_path=trainset_path, testset_path=testset_path)
             sys.exit(0)
         elif choice == 34:
-            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
-            if not checkpoint_path:
-                print_warning("No checkpoint path provided.")
+            checkpoint_path = _ask_checkpoint_path()
+            if checkpoint_path is None:
                 continue
             output_path = input(" Output path [default: ./ai2pot_libtorch.pt]: ").strip() or "./ai2pot_libtorch.pt"
             from ai2pot_cli.menus.postprocessing.serialize_model import serialize_model
             serialize_model(checkpoint_path, output_path=output_path)
             sys.exit(0)
         elif choice == 35:
-            checkpoint_path = input(" Checkpoint path (.ckpt): ").strip()
-            if not checkpoint_path:
-                print_warning("No checkpoint path provided.")
+            checkpoint_path = _ask_checkpoint_path()
+            if checkpoint_path is None:
                 continue
             distance_range = input(" ZBL distance range (A) [default: 0.5-4.0]: ").strip()
             from ai2pot_cli.menus.postprocessing.plot_zbl import plot_zbl
             try:
                 plot_zbl(checkpoint_path, distance_range=distance_range or None)
+            except ValueError as exc:
+                print_error(str(exc))
+                continue
+            sys.exit(0)
+        elif choice == 36:
+            checkpoint_path = _ask_checkpoint_path()
+            if checkpoint_path is None:
+                continue
+            structure_path = input(" Reference structure path (POSCAR/xyz): ").strip()
+            if not structure_path:
+                print_warning("No structure path provided.")
+                continue
+            if not os.path.isfile(structure_path):
+                print_error(f"File not found: {structure_path}")
+                continue
+            scale_range = input(" Lattice scale range [default: 0.90-1.10]: ").strip()
+            n_points_str = input(" Number of points incl. original [default: 21]: ").strip()
+            try:
+                n_points = int(n_points_str) if n_points_str else None
+            except ValueError:
+                print_error(f"Invalid number of points: {n_points_str}")
+                continue
+            from ai2pot_cli.menus.postprocessing.plot_eos import plot_eos
+            try:
+                plot_eos(checkpoint_path, structure_path,
+                         scale_range=scale_range or None, n_points=n_points)
             except ValueError as exc:
                 print_error(str(exc))
                 continue
