@@ -43,7 +43,6 @@ MIN_N_POINTS = 5
 EV_A3_TO_GPA = 160.2176634
 
 POINT_COLOR = "#4477AA"
-ORIGINAL_COLOR = "#d73027"
 
 
 def _get_symbol(z: int) -> str:
@@ -189,34 +188,22 @@ def _fit_eos(volumes: np.ndarray, energies: np.ndarray) -> Dict[str, float]:
 
 def _make_eos_plot(volumes: np.ndarray,
                    energies: np.ndarray,
-                   index_original: int,
                    fit: Dict[str, float],
                    model_label: str,
                    output_path: str):
-    """E-V points plus the fitted Birch-Murnaghan curve, annotated with the fit parameters."""
+    """E-V points plus the fitted Birch-Murnaghan curve; only the model name is labelled."""
     fig, ax = plt.subplots(figsize=(6.5, 5.8))
 
     fit_volumes = np.linspace(float(volumes.min()), float(volumes.max()), 300)
     ax.plot(fit_volumes,
             _birch_murnaghan_3rd(fit_volumes, fit["e0"], fit["v0"], fit["b0"], fit["b0p"]),
-            color="black", linewidth=2.0, label="Birch-Murnaghan fit", zorder=2)
+            color="black", linewidth=2.0, zorder=2)
     ax.scatter(volumes, energies, s=60, alpha=0.9, c=POINT_COLOR,
                marker="o", edgecolors="none", label=model_label, zorder=3)
-    ax.scatter([volumes[index_original]], [energies[index_original]],
-               s=90, facecolors="none", edgecolors=ORIGINAL_COLOR, marker="D",
-               linewidths=1.6, label="Original structure", zorder=4)
-    ax.axvline(fit["v0"], color="grey", linestyle="--", linewidth=1.2, zorder=1)
 
     ax.set_xlabel("Volume (A^3/atom)")
     ax.set_ylabel("Energy (eV/atom)")
     ax.legend(loc="lower right", framealpha=0.8)
-
-    text = (f"V0 = {fit['v0']:.4f} A^3/atom\n"
-            f"E0 = {fit['e0']:.4f} eV/atom\n"
-            f"B0 = {fit['b0'] * EV_A3_TO_GPA:.2f} GPa\n"
-            f"B0' = {fit['b0p']:.2f}")
-    ax.text(0.05, 0.92, text, transform=ax.transAxes, fontsize=16,
-            verticalalignment="top", bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.6))
 
     fig.tight_layout()
     fig.savefig(output_path)
@@ -359,8 +346,7 @@ def plot_eos(
                    volumes_total, energies_total, fit)
 
     # --- Plot ---
-    index_original = int(np.argmin(np.abs(scales - 1.0)))
-    _make_eos_plot(volumes, energies, index_original, fit, model_type.upper(), abs_output)
+    _make_eos_plot(volumes, energies, fit, model_type.upper(), abs_output)
 
     # --- Print results ---
     print_section("EOS Plot Generated Successfully")
