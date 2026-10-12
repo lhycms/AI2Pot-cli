@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from ase import Atoms
-from ase.io import read as ase_read
+from ase.io import read as ase_read, write as ase_write
 from scipy.optimize import curve_fit
 
 from ai2pot_cli.menu import (print_section, print_kv, print_sep,
@@ -32,6 +32,8 @@ plt.rcParams.update({
 OUT_DIR_NAME = "eos_analysis"
 PLOT_NAME = "eos_plot.png"
 DATA_NAME = "eos_data.dat"
+STRUCTURES_DIR_NAME = "structures"
+POSCAR_NAME = "POSCAR"
 
 # Lattice scale factors s (each lattice vector x s); s = 1.0 is the original structure.
 DEFAULT_SCALE_MIN = 0.90
@@ -255,6 +257,8 @@ def plot_eos(
     coordinates unchanged); the grid spans ``scale_range`` and always contains the
     original structure (s = 1.0). Every scaled structure is evaluated with the
     checkpoint's potential and a Birch-Murnaghan 3rd-order EOS is fitted per atom.
+    Each scaled structure is also written as POSCAR to
+    ``<out_dir>/structures/<scale>/POSCAR``.
 
     Args:
         checkpoint_path: Path to the .ckpt checkpoint file (MTP / NNMTP / NEP).
@@ -315,6 +319,7 @@ def plot_eos(
     print_kv("Points", f"{len(scales)} (incl. s = 1.00)")
 
     # --- Evaluate EOS points ---
+    structures_dir = os.path.join(out_dir, STRUCTURES_DIR_NAME)
     volumes_total = np.empty(len(scales))
     energies_total = np.empty(len(scales))
     for k, s in enumerate(scales):
@@ -325,6 +330,10 @@ def plot_eos(
                        positions=base_positions * s,
                        cell=base_cell * s,
                        pbc=True)
+        scale_dir = os.path.join(structures_dir, f"{s:.3f}")
+        os.makedirs(scale_dir, exist_ok=True)
+        ase_write(os.path.join(scale_dir, POSCAR_NAME), scaled, format="vasp",
+                  direct=True, sort=False)
         scaled.calc = calculator
         energies_total[k] = float(scaled.get_potential_energy())
         volumes_total[k] = float(np.linalg.det(scaled.cell.array))
@@ -353,6 +362,7 @@ def plot_eos(
     print_kv("Output Dir", out_dir)
     print_kv("Output Plot", abs_output)
     print_kv("Output Data", data_path)
+    print_kv("Structures Dir", structures_dir)
     print()
     print("  EOS Fit (Birch-Murnaghan 3rd order):")
     print_kv("V0 (A^3/atom)", f"{fit['v0']:.4f}")
