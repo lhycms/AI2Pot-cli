@@ -41,7 +41,7 @@ The following menu will be shown:
 ```shell
  +--------------------------------------------------------------------------+
  |                       AI2Pot-cli Standard Edition                        |
- |                           Version 1.0.0                                  |
+ |                           Version 1.2.2                                  |
  |                                                                          |
  |                Official Command Line Interface for AI2Pot                |
  |                                                                          |
@@ -59,15 +59,16 @@ The following menu will be shown:
  15)  NEP Active Learning            16)  NNMTP Active Learning
  ========================= Potential Training Input =========================
  21)  MTP Training Input             22)  NEP Training Input
- 23)  NNMTP Training Input
+ 23)  NNMTP Training Input           24)  ZBL Input
  ============================== Postprocessing ==============================
  31)  Plot E/F/V Parity              32)  Plot Learning Curve
  33)  Plot Descriptor Projection     34)  Export TorchScript Model
+ 35)  Plot ZBL                       36)  Plot EOS
  =============================== MD Utilities ===============================
  91)  Doctor                         92)  Show Examples
  93)  Print Version
   0)  Quit
- ------------>>
+ ------------>> 
 ```
 
 Users can select a task by entering the corresponding number.
