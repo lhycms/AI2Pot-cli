@@ -14,7 +14,7 @@ register(116, "ai2pot_cli.menus.preprocessing.converters.dp2xyz",     "run_dp2xy
 register(117, "ai2pot_cli.menus.preprocessing.converters.castep2exyz","run_castep2exyz")
 
 _MENU_ITEMS = [
-    (111, "VASP → extxyz",      "vasprun.xml → extxyz (ASE-based, recursive scan)"),
+    (111, "VASP → extxyz",      "VASP results (vasprun.xml / OUTCAR, recursive scan) → extxyz"),
     (112, "CP2K → extxyz",      ".inp + .log → extxyz (energy/forces/stress/virial)"),
     (113, "ABACUS → extxyz",    "running_scf.log / abacus.json → extxyz"),
     (114, "SIESTA → extxyz",    "BASIS_ENTHALPY + .FA + STRUCT_OUT → extxyz"),
