@@ -18,7 +18,7 @@ _MENU_ITEMS = [
     (112, "CP2K → extxyz",      ".inp + .log → extxyz (energy/forces/stress/virial)"),
     (113, "ABACUS → extxyz",    "running_scf.log / abacus.json → extxyz"),
     (114, "SIESTA → extxyz",    "BASIS_ENTHALPY + .FA + STRUCT_OUT → extxyz"),
-    (115, "ORCA → extxyz",      "Multi-frame .xyz + template.inp → run ORCA → extxyz"),
+    (115, "ORCA → extxyz",      "ORCA results (.engrad / output, recursive scan) → extxyz"),
     (116, "DeepMD → extxyz",    "DeepMD-kit (type.raw + set.*/npy) → extxyz"),
     (117, "CASTEP → extxyz",    ".castep → extxyz (lattice/energy/stress/forces)"),
 ]
