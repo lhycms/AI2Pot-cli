@@ -401,10 +401,35 @@ def _plot_gamma_histogram(gamma_structures, gamma_atoms, output_path: str):
         (axes[1], atom_values, "Atom Gamma", "#d73027"),
     )
     for ax, values, title, color in panels:
-        weights = np.ones_like(values) / values.size
-        ax.hist(values, bins=50, weights=weights, color=color, alpha=0.85, edgecolor="none")
+        counts, _, _ = ax.hist(values, bins=50, color=color, alpha=0.85, edgecolor="none")
+        # Rare high-gamma bins are only a few counts per bin; a log y-axis keeps
+        # them visible instead of flattening them to invisible slivers.
+        ax.set_yscale("log")
+        max_count = max(int(counts.max()), 1)
+        top = max_count * 3.0
+        ax.set_yticks([10.0 ** exponent for exponent in range(int(np.log10(top)) + 1)])
+        ax.set_ylim(bottom=0.1, top=top)
+        vmin, vmax = float(values.min()), float(values.max())
+        pad = 0.02 * (vmax - vmin if vmax > vmin else 1.0)
+        xleft = max(0.0, vmin - pad)
+        if vmax > 1.0:
+            ax.axvline(1.0, color="black", linestyle="--", linewidth=1.2)
+            xleft = min(xleft, 1.0)
+        ax.set_xlim(xleft, vmax + pad)
+        num_above = int(np.count_nonzero(values > 1.0))
+        fraction_above = 100.0 * num_above / values.size
+        stats = (
+            f"$\\gamma$ > 1: {num_above:,} / {values.size:,} ({fraction_above:.3g}%)\n"
+            f"max $\\gamma$ = {values.max():.3f}"
+        )
+        ax.text(
+            0.97, 0.95, stats,
+            transform=ax.transAxes, ha="right", va="top",
+            fontsize=14,
+            bbox=dict(boxstyle="round", facecolor="white", edgecolor="0.8", alpha=0.9),
+        )
         ax.set_xlabel("Gamma")
-        ax.set_ylabel("Probability")
+        ax.set_ylabel("Count (log scale)")
         ax.set_title(title)
 
     fig.tight_layout()
