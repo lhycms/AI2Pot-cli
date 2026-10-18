@@ -105,8 +105,21 @@ def initialize_maxvol_matrix():
         output_path += ".pt"
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
+    default_active_set_path = os.path.join(
+        os.path.dirname(os.path.abspath(output_path)), "active_set.xyz"
+    )
+    active_set_path = input(
+        f" Active set path (.xyz) [default: {default_active_set_path}]: "
+    ).strip() or default_active_set_path
+    if not active_set_path.lower().endswith(".xyz"):
+        active_set_path += ".xyz"
+    os.makedirs(os.path.dirname(os.path.abspath(active_set_path)), exist_ok=True)
+
     device = _get_device()
     print_section(f"Running on {device.upper()}")
+    print_kv("Checkpoint", checkpoint_path)
+    print_kv("Candidate Set", candidate_set_path)
+    print_sep()
 
     try:
         model_type = _detect_model_type(checkpoint_path)
@@ -116,10 +129,6 @@ def initialize_maxvol_matrix():
     if model_type != "mtp":
         print_error(f"Checkpoint is a {model_type.upper()} model; this tool requires an MTP checkpoint.")
         return
-
-    print_kv("Checkpoint", checkpoint_path)
-    print_kv("Candidate Set", candidate_set_path)
-    print_kv("PBC", "T T T")
 
     try:
         import torch
@@ -154,16 +163,23 @@ def initialize_maxvol_matrix():
         return
 
     selected_structure_ids = [int(i) for i in torch.unique(maxvol_structure_id).cpu().tolist()]
-    active_set_path = os.path.join(os.path.dirname(os.path.abspath(output_path)), "active_set.xyz")
     try:
-        from ase.io import read, write
+        from ase.io import iread, write
 
-        active_structures = read(candidate_set_path, index=selected_structure_ids)
-        if len(active_structures) != len(selected_structure_ids):
+        wanted_ids = set(selected_structure_ids)
+        structures_by_id = {}
+        for frame_index, atoms in enumerate(iread(candidate_set_path)):
+            if frame_index in wanted_ids:
+                structures_by_id[frame_index] = atoms
+                if len(structures_by_id) == len(wanted_ids):
+                    break
+        missing_ids = [i for i in selected_structure_ids if i not in structures_by_id]
+        if missing_ids:
             raise ValueError(
-                f"Read {len(active_structures)} structures from the candidate set, "
-                f"expected {len(selected_structure_ids)}."
+                f"Selected structure id {missing_ids[0]} is out of range "
+                f"for the candidate set."
             )
+        active_structures = [structures_by_id[i] for i in selected_structure_ids]
     except Exception as exc:
         print_error(f"Failed to build active set: {exc}")
         return
