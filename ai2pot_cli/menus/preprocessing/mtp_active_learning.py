@@ -2,7 +2,6 @@
 
 import os
 import sys
-from typing import List
 
 from ai2pot_cli.menu import (
     show_numbered_menu,
@@ -83,26 +82,6 @@ def _detect_model_type(checkpoint_path: str) -> str:
     )
 
 
-def _parse_pbc(text: str) -> List[bool]:
-    tokens = text.replace(",", " ").split()
-    if not tokens:
-        return [True, True, True]
-    if len(tokens) == 1:
-        tokens = tokens * 3
-    if len(tokens) != 3:
-        raise ValueError(f"Invalid PBC setting '{text}'.")
-    values: List[bool] = []
-    for token in tokens:
-        low = token.lower()
-        if low in ("y", "yes", "true", "t", "1"):
-            values.append(True)
-        elif low in ("n", "no", "false", "f", "0"):
-            values.append(False)
-        else:
-            raise ValueError(f"Invalid PBC setting '{text}'.")
-    return values
-
-
 def initialize_maxvol_matrix():
     """Generate the MaxVol matrix for a candidate set with the trained MTP checkpoint."""
     print_section("MTP Active Learning -- Initialize Maxvol Matrix")
@@ -119,12 +98,7 @@ def initialize_maxvol_matrix():
         print_error(f"File not found: {candidate_set_path}")
         return
 
-    pbc_str = input(" Periodic BC (x y z) [default: y y y]: ").strip()
-    try:
-        pbc_xyz = _parse_pbc(pbc_str)
-    except ValueError as exc:
-        print_warning(f"{exc} Using y y y.")
-        pbc_xyz = [True, True, True]
+    pbc_xyz = [True, True, True]
 
     output_path = input(f" Output path [default: {DEFAULT_OUTPUT}]: ").strip() or DEFAULT_OUTPUT
     if not output_path.lower().endswith(".pt"):
@@ -145,7 +119,7 @@ def initialize_maxvol_matrix():
 
     print_kv("Checkpoint", checkpoint_path)
     print_kv("Candidate Set", candidate_set_path)
-    print_kv("PBC", " ".join("T" if flag else "F" for flag in pbc_xyz))
+    print_kv("PBC", "T T T")
 
     try:
         import torch
@@ -179,6 +153,21 @@ def initialize_maxvol_matrix():
         print_error(str(exc))
         return
 
+    selected_structure_ids = [int(i) for i in torch.unique(maxvol_structure_id).cpu().tolist()]
+    active_set_path = os.path.join(os.path.dirname(os.path.abspath(output_path)), "active_set.xyz")
+    try:
+        from ase.io import read, write
+
+        active_structures = read(candidate_set_path, index=selected_structure_ids)
+        if len(active_structures) != len(selected_structure_ids):
+            raise ValueError(
+                f"Read {len(active_structures)} structures from the candidate set, "
+                f"expected {len(selected_structure_ids)}."
+            )
+    except Exception as exc:
+        print_error(f"Failed to build active set: {exc}")
+        return
+
     torch.save(
         {
             "maxvol_structure_id": maxvol_structure_id.cpu(),
@@ -194,14 +183,19 @@ def initialize_maxvol_matrix():
         },
         output_path,
     )
+    try:
+        write(active_set_path, active_structures, format="extxyz")
+    except Exception as exc:
+        print_error(f"Failed to write active set: {exc}")
+        return
 
     num_parameters = int(maxvol_matrix.size(0))
-    num_structures = int(torch.unique(maxvol_structure_id).numel())
 
     print_section("Maxvol Matrix Initialized Successfully")
     print_kv("Output File", os.path.abspath(output_path))
+    print_kv("Active Set", os.path.abspath(active_set_path))
     print_kv("Matrix Shape", f"{num_parameters} x {num_parameters}")
-    print_kv("Selected Structures", str(num_structures))
+    print_kv("Selected Structures", str(len(selected_structure_ids)))
     print_kv("Selected Atoms", str(num_parameters))
     print_kv("Tolerance", f"{DEFAULT_TOL:g}")
     print_sep()
