@@ -113,7 +113,8 @@ def _interactive_loop():
             analyse_dataset(extxyz_path, rcut)
             sys.exit(0)
         elif choice == 14:
-            print(" -> MTP Active Learning (not yet implemented)\n")
+            from ai2pot_cli.menus.preprocessing.mtp_active_learning import mtp_active_learning_menu
+            mtp_active_learning_menu()
         elif choice == 15:
             print(" -> NEP Active Learning (not yet implemented)\n")
         elif choice == 16:

@@ -26,3 +26,4 @@ from ai2pot_cli.menus.install import router       # noqa: E402
 from ai2pot_cli.menus.install import install_source  # noqa: E402
 from ai2pot_cli.menus.install import install_lammps  # noqa: E402
 from ai2pot_cli.menus.preprocessing import convert_dataset  # noqa: E402
+from ai2pot_cli.menus.preprocessing import mtp_active_learning  # noqa: E402
