@@ -228,6 +228,46 @@ def initialize_maxvol_matrix():
     sys.exit(0)
 
 
+def _explore_path_for_gamma(explore_path: str, fit_virial: bool):
+    """Return an explore path usable by AI2Pot's ExtxyzDataset.
+
+    The dataset reads energy/force labels unconditionally, but an unlabeled
+    explore set has no calculator; gamma only needs the geometry, so a
+    temporary copy with zero placeholders is used.
+    """
+    import tempfile
+
+    import numpy as np
+    from ase.calculators.singlepoint import SinglePointCalculator
+    from ase.io import iread, read, write
+
+    first = read(explore_path, index=0)
+    results = getattr(first.calc, "results", {}) if first.calc is not None else {}
+    has_labels = "energy" in results and "forces" in results
+    has_virial = "virial" in first.info or "stress" in first.info
+    if has_labels and (not fit_virial or has_virial):
+        return explore_path, None
+
+    fd, temp_path = tempfile.mkstemp(prefix="ai2pot_explore_", suffix=".extxyz")
+    os.close(fd)
+
+    def frames():
+        for atoms in iread(explore_path):
+            atoms.calc = SinglePointCalculator(
+                atoms, energy=0.0, forces=np.zeros((len(atoms), 3))
+            )
+            if fit_virial and "virial" not in atoms.info and "stress" not in atoms.info:
+                atoms.info["virial"] = np.zeros(9)
+            yield atoms
+
+    try:
+        write(temp_path, frames(), format="extxyz")
+    except Exception:
+        os.remove(temp_path)
+        raise
+    return temp_path, temp_path
+
+
 def analyze_gamma():
     """Compute extrapolation levels (gamma) for a new candidate set."""
     print_section("MTP Active Learning -- Analyze Extrapolation Level (Gamma)")
@@ -284,10 +324,19 @@ def analyze_gamma():
             return
 
         print_success("Computing gamma ...")
-        gamma_structures, gamma_atoms_padded = generator.get_gamma(
-            maxvol_matrix_inv=maxvol_matrix_inv,
-            explore_path=explore_path,
+        gamma_explore_path, temp_explore_path = _explore_path_for_gamma(
+            explore_path, generator.fit_virial
         )
+        if temp_explore_path:
+            print_warning("Explore set has no E/F labels; using temporary zero placeholders.")
+        try:
+            gamma_structures, gamma_atoms_padded = generator.get_gamma(
+                maxvol_matrix_inv=maxvol_matrix_inv,
+                explore_path=gamma_explore_path,
+            )
+        finally:
+            if temp_explore_path:
+                os.remove(temp_explore_path)
         gamma_structures = gamma_structures.cpu()
 
         from ase.io import iread
