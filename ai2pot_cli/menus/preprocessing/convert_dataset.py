@@ -11,16 +11,16 @@ register(113, "ai2pot_cli.menus.preprocessing.converters.abacus2xyz", "run_abacu
 register(114, "ai2pot_cli.menus.preprocessing.converters.siesta2xyz", "run_siesta2xyz")
 register(115, "ai2pot_cli.menus.preprocessing.converters.orca2xyz",   "run_orca2xyz")
 register(116, "ai2pot_cli.menus.preprocessing.converters.dp2xyz",     "run_dp2xyz")
-register(117, "ai2pot_cli.menus.preprocessing.converters.castep2exyz","run_castep2exyz")
+register(117, "ai2pot_cli.menus.preprocessing.converters.lammps2xyz", "run_lammps2xyz")
 
 _MENU_ITEMS = [
-    (111, "VASP → extxyz",      "VASP results (vasprun.xml / OUTCAR, recursive scan) → extxyz"),
+    (111, "VASP → extxyz",      "VASP results (vasprun.xml / OUTCAR / POSCAR, recursive scan) → extxyz"),
     (112, "CP2K → extxyz",      ".inp + .log → extxyz (energy/forces/stress/virial)"),
     (113, "ABACUS → extxyz",    "running_scf.log / abacus.json → extxyz"),
     (114, "SIESTA → extxyz",    "BASIS_ENTHALPY + .FA + STRUCT_OUT → extxyz"),
     (115, "ORCA → extxyz",      "ORCA results (.engrad / output, recursive scan) → extxyz"),
     (116, "DeepMD → extxyz",    "DeepMD-kit (type.raw + set.*/npy) → extxyz"),
-    (117, "CASTEP → extxyz",    ".castep → extxyz (lattice/energy/stress/forces)"),
+    (117, "LAMMPS → extxyz",    "LAMMPS trajectories (*.lammpstrj / *.dump, recursive scan) → extxyz"),
 ]
 
 
@@ -53,8 +53,8 @@ def convert_dataset_menu():
             from ai2pot_cli.menus.preprocessing.converters.dp2xyz import run_dp2xyz
             run_dp2xyz()
         elif choice == 117:
-            from ai2pot_cli.menus.preprocessing.converters.castep2exyz import run_castep2exyz
-            run_castep2exyz()
+            from ai2pot_cli.menus.preprocessing.converters.lammps2xyz import run_lammps2xyz
+            run_lammps2xyz()
         elif choice == 9:
             return
         elif choice == 0:

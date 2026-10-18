@@ -6,5 +6,6 @@ ai2pot_cli.egg-info
 **/*.traj
 **/*.log
 **/.claude
+**/test/test_data
 
 **/CLAUDE.md
