@@ -18,7 +18,7 @@ from ai2pot_cli.commands import register
 DEFAULT_CHECKPOINT: str = "./lightning_logs/version_0/checkpoints/last.ckpt"
 DEFAULT_OUTPUT: str = "./maxvol_matrix.pt"
 DEFAULT_ACTIVE_SET: str = "./active_set.xyz"
-DEFAULT_MAXVOL: str = "./maxvol_matrix.pt"
+DEFAULT_MAXVOL_INV: str = "./maxvol_matrix_inv.pt"
 DEFAULT_EXPLORE: str = "./explore.xyz"
 DEFAULT_GAMMA_DIR: str = "./gamma_analysis"
 DEFAULT_MAXITER: int = 20000
@@ -232,9 +232,15 @@ def analyze_gamma():
     """Compute extrapolation levels (gamma) for a new candidate set."""
     print_section("MTP Active Learning -- Analyze Extrapolation Level (Gamma)")
 
-    maxvol_path = input(f" Maxvol matrix path (.pt) [default: {DEFAULT_MAXVOL}]: ").strip() or DEFAULT_MAXVOL
-    if not os.path.isfile(maxvol_path):
-        print_error(f"File not found: {maxvol_path}")
+    checkpoint_path = _ask_checkpoint_path()
+    if not checkpoint_path:
+        return
+
+    maxvol_inv_path = input(
+        f" Maxvol matrix inv path (.pt) [default: {DEFAULT_MAXVOL_INV}]: "
+    ).strip() or DEFAULT_MAXVOL_INV
+    if not os.path.isfile(maxvol_inv_path):
+        print_error(f"File not found: {maxvol_inv_path}")
         return
 
     explore_path = input(f" Explore set path (.xyz) [default: {DEFAULT_EXPLORE}]: ").strip() or DEFAULT_EXPLORE
@@ -242,22 +248,23 @@ def analyze_gamma():
         print_error(f"File not found: {explore_path}")
         return
 
-    output_dir = input(f" Output directory [default: {DEFAULT_GAMMA_DIR}]: ").strip() or DEFAULT_GAMMA_DIR
+    output_dir = DEFAULT_GAMMA_DIR
     os.makedirs(output_dir, exist_ok=True)
 
     device = _get_device()
     print_section(f"Running on {device.upper()}")
-    print_kv("Maxvol Matrix", maxvol_path)
+    print_kv("Checkpoint", checkpoint_path)
+    print_kv("Maxvol Matrix Inv", maxvol_inv_path)
     print_kv("Explore Set", explore_path)
     print_sep()
 
     try:
         import torch
 
-        maxvol_data = torch.load(maxvol_path, map_location="cpu", weights_only=False)
-        checkpoint_path = maxvol_data["checkpoint_path"]
-        maxvol_matrix_inv = maxvol_data["maxvol_matrix_inv"].to(torch.device(device))
-        pbc_xyz = [bool(v) for v in maxvol_data.get("pbc_xyz", [True, True, True])]
+        maxvol_matrix_inv = torch.load(
+            maxvol_inv_path, map_location="cpu", weights_only=False
+        ).to(torch.device(device))
+        pbc_xyz = [True, True, True]
 
         model_type = _detect_model_type(checkpoint_path)
         if model_type != "mtp":
@@ -320,7 +327,7 @@ def analyze_gamma():
 
     metadata = {
         "checkpoint_path": checkpoint_path,
-        "maxvol_path": maxvol_path,
+        "maxvol_inv_path": maxvol_inv_path,
         "explore_path": explore_path,
         "pbc_xyz": pbc_xyz,
     }
