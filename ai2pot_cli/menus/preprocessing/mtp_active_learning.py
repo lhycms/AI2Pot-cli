@@ -106,16 +106,10 @@ def initialize_maxvol_matrix():
 
     pbc_xyz = [True, True, True]
 
-    output_path = input(f" Output path [default: {DEFAULT_OUTPUT}]: ").strip() or DEFAULT_OUTPUT
-    if not output_path.lower().endswith(".pt"):
-        output_path += ".pt"
+    output_path = DEFAULT_OUTPUT
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
-    active_set_path = input(
-        f" Active set path (.xyz) [default: {DEFAULT_ACTIVE_SET}]: "
-    ).strip() or DEFAULT_ACTIVE_SET
-    if not active_set_path.lower().endswith(".xyz"):
-        active_set_path += ".xyz"
+    active_set_path = DEFAULT_ACTIVE_SET
     os.makedirs(os.path.dirname(os.path.abspath(active_set_path)), exist_ok=True)
 
     device = _get_device()
@@ -202,9 +196,7 @@ def initialize_maxvol_matrix():
         },
         output_path,
     )
-    maxvol_matrix_inv_path = os.path.join(
-        os.path.dirname(os.path.abspath(output_path)), "maxvol_matrix_inv.pt"
-    )
+    maxvol_matrix_inv_path = DEFAULT_MAXVOL_INV
     torch.save(maxvol_matrix_inv.cpu(), maxvol_matrix_inv_path)
     try:
         write(active_set_path, active_structures, format="extxyz")
@@ -291,31 +283,16 @@ def analyze_gamma():
             return
 
         print_success("Computing gamma ...")
-        gamma_structures, gamma_atoms_padded = generator.get_gamma(
+        structure_ids, atom_ids, gamma_structures, gamma_atoms = generator.get_gamma(
             maxvol_matrix_inv=maxvol_matrix_inv,
             explore_path=explore_path,
         )
+        structure_ids = structure_ids.cpu()
+        atom_ids = atom_ids.cpu()
         gamma_structures = gamma_structures.cpu()
-
-        from ase.io import iread
-
-        num_atoms_list = [len(atoms) for atoms in iread(explore_path)]
-        gamma_atoms_padded = gamma_atoms_padded.cpu()
-        if gamma_atoms_padded.size(0) != len(num_atoms_list):
-            raise ValueError(
-                f"Gamma structure count ({gamma_atoms_padded.size(0)}) does not match "
-                f"the explore set ({len(num_atoms_list)})."
-            )
-        gamma_atoms = torch.cat(
-            [
-                gamma_atoms_padded[structure_index, :num_atoms]
-                for structure_index, num_atoms in enumerate(num_atoms_list)
-            ]
-        )
-        num_atoms_per_structure = torch.tensor(num_atoms_list, dtype=torch.long)
-        structure_ids = torch.repeat_interleave(
-            torch.arange(num_atoms_per_structure.numel(), dtype=torch.long),
-            num_atoms_per_structure,
+        gamma_atoms = gamma_atoms.cpu()
+        num_atoms_per_structure = torch.bincount(
+            structure_ids, minlength=gamma_structures.numel()
         )
     except Exception as exc:
         print_error(str(exc))
@@ -343,6 +320,7 @@ def analyze_gamma():
         {
             "gamma_atoms": gamma_atoms,
             "structure_ids": structure_ids,
+            "atom_ids": atom_ids,
             "num_atoms_per_structure": num_atoms_per_structure,
             **metadata,
         },
