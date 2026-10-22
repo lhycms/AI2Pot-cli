@@ -141,16 +141,16 @@ def initialize_maxvol_matrix():
         # load_from_checkpoint(map_location=...) only maps the checkpoint storages;
         # move the module explicitly so the Jacobian runs on `device`.
         generator.lit_module.to(torch.device(device))
-        if not hasattr(generator, "generate_maxvol_matrix"):
+        if not hasattr(generator, "generate_maxvol_matrix_local"):
             print_error(
-                "LinearMtpMaxvolGenerator.generate_maxvol_matrix() is not available; "
+                "LinearMtpMaxvolGenerator.generate_maxvol_matrix_local() is not available; "
                 "please update AI2Pot to a version that provides it."
             )
             return
 
         print_success("Initializing MaxVol matrix ...")
         maxvol_structure_id, maxvol_atom_id, maxvol_matrix, maxvol_matrix_inv = \
-            generator.generate_maxvol_matrix(
+            generator.generate_maxvol_matrix_local(
                 maxiter=DEFAULT_MAXITER,
                 tol=DEFAULT_TOL,
                 rank_tol=DEFAULT_RANK_TOL,
@@ -275,15 +275,15 @@ def analyze_gamma():
         # move the module explicitly so the Jacobian runs on `device`.
         generator.lit_module.to(torch.device(device))
         generator.lit_module.eval()
-        if not hasattr(generator, "get_gamma"):
+        if not hasattr(generator, "get_gamma_local"):
             print_error(
-                "LinearMtpMaxvolGenerator.get_gamma() is not available; "
+                "LinearMtpMaxvolGenerator.get_gamma_local() is not available; "
                 "please update AI2Pot to a version that provides it."
             )
             return
 
         print_success("Computing gamma ...")
-        structure_ids, atom_ids, gamma_structures, gamma_atoms = generator.get_gamma(
+        structure_ids, atom_ids, gamma_structures, gamma_atoms = generator.get_gamma_local(
             maxvol_matrix_inv=maxvol_matrix_inv,
             explore_path=explore_path,
         )
