@@ -25,6 +25,11 @@ DEFAULT_MAXITER: int = 20000
 DEFAULT_TOL: float = 1e-4
 DEFAULT_RANK_TOL: float = 1e-12
 
+_MODE_LABELS = {
+    "local": "Atom-local environment",
+    "global": "Whole structure",
+}
+
 _MENU_ITEMS = [
     (141, "Initialize Maxvol Matrix", "Build the initial D-optimal basis from a labeled candidate set"),
     (142, "Analyze Extrapolation Level (Gamma)", "Compute gamma for a new candidate set with the MaxVol matrix"),
@@ -53,6 +58,19 @@ def mtp_active_learning_menu():
             sys.exit(0)
         else:
             print_warning(f"Invalid option: {choice}")
+
+
+def _ask_mode() -> str:
+    print(" Select analysis mode:")
+    print("   1)  Atom-local environment (default)")
+    print("   2)  Whole structure")
+    while True:
+        choice = input(" Mode [1]: ").strip().lower()
+        if choice in ("", "1", "local"):
+            return "local"
+        if choice in ("2", "global"):
+            return "global"
+        print_warning("Invalid mode; please enter 1 or 2.")
 
 
 def _ask_checkpoint_path() -> str:
@@ -92,6 +110,8 @@ def initialize_maxvol_matrix():
     """Generate the MaxVol matrix for a candidate set with the trained MTP checkpoint."""
     print_section("MTP Active Learning -- Initialize Maxvol Matrix")
 
+    mode = _ask_mode()
+
     checkpoint_path = _ask_checkpoint_path()
     if not checkpoint_path:
         return
@@ -114,6 +134,7 @@ def initialize_maxvol_matrix():
 
     device = _get_device()
     print_section(f"Running on {device.upper()}")
+    print_kv("Mode", _MODE_LABELS[mode])
     print_kv("Checkpoint", checkpoint_path)
     print_kv("Candidate Set", candidate_set_path)
     print_sep()
@@ -141,20 +162,35 @@ def initialize_maxvol_matrix():
         # load_from_checkpoint(map_location=...) only maps the checkpoint storages;
         # move the module explicitly so the Jacobian runs on `device`.
         generator.lit_module.to(torch.device(device))
-        if not hasattr(generator, "generate_maxvol_matrix_local"):
-            print_error(
-                "LinearMtpMaxvolGenerator.generate_maxvol_matrix_local() is not available; "
-                "please update AI2Pot to a version that provides it."
-            )
-            return
-
-        print_success("Initializing MaxVol matrix ...")
-        maxvol_structure_id, maxvol_atom_id, maxvol_matrix, maxvol_matrix_inv = \
-            generator.generate_maxvol_matrix_local(
-                maxiter=DEFAULT_MAXITER,
-                tol=DEFAULT_TOL,
-                rank_tol=DEFAULT_RANK_TOL,
-            )
+        if mode == "local":
+            if not hasattr(generator, "generate_maxvol_matrix_local"):
+                print_error(
+                    "LinearMtpMaxvolGenerator.generate_maxvol_matrix_local() is not available; "
+                    "please update AI2Pot to a version that provides it."
+                )
+                return
+            print_success("Initializing MaxVol matrix ...")
+            maxvol_structure_id, maxvol_atom_id, maxvol_matrix, maxvol_matrix_inv = \
+                generator.generate_maxvol_matrix_local(
+                    maxiter=DEFAULT_MAXITER,
+                    tol=DEFAULT_TOL,
+                    rank_tol=DEFAULT_RANK_TOL,
+                )
+        else:
+            if not hasattr(generator, "generate_maxvol_matrix_global"):
+                print_error(
+                    "LinearMtpMaxvolGenerator.generate_maxvol_matrix_global() is not available; "
+                    "please update AI2Pot to a version that provides it."
+                )
+                return
+            print_success("Initializing MaxVol matrix ...")
+            maxvol_atom_id = None
+            maxvol_structure_id, maxvol_matrix, maxvol_matrix_inv = \
+                generator.generate_maxvol_matrix_global(
+                    maxiter=DEFAULT_MAXITER,
+                    tol=DEFAULT_TOL,
+                    rank_tol=DEFAULT_RANK_TOL,
+                )
     except Exception as exc:
         print_error(str(exc))
         return
@@ -183,8 +219,9 @@ def initialize_maxvol_matrix():
 
     torch.save(
         {
+            "mode": mode,
             "maxvol_structure_id": maxvol_structure_id.cpu(),
-            "maxvol_atom_id": maxvol_atom_id.cpu(),
+            "maxvol_atom_id": maxvol_atom_id.cpu() if maxvol_atom_id is not None else None,
             "maxvol_matrix": maxvol_matrix.cpu(),
             "maxvol_matrix_inv": maxvol_matrix_inv.cpu(),
             "checkpoint_path": checkpoint_path,
@@ -207,12 +244,14 @@ def initialize_maxvol_matrix():
     num_parameters = int(maxvol_matrix.size(0))
 
     print_section("Maxvol Matrix Initialized Successfully")
+    print_kv("Mode", _MODE_LABELS[mode])
     print_kv("Output File", os.path.abspath(output_path))
     print_kv("Inverse Matrix", os.path.abspath(maxvol_matrix_inv_path))
     print_kv("Active Set", os.path.abspath(active_set_path))
     print_kv("Matrix Shape", f"{num_parameters} x {num_parameters}")
     print_kv("Selected Structures", str(len(selected_structure_ids)))
-    print_kv("Selected Atoms", str(num_parameters))
+    if mode == "local":
+        print_kv("Selected Atoms", str(num_parameters))
     print_kv("Tolerance", f"{DEFAULT_TOL:g}")
     print_sep()
     print()
@@ -223,6 +262,8 @@ def initialize_maxvol_matrix():
 def analyze_gamma():
     """Compute extrapolation levels (gamma) for a new candidate set."""
     print_section("MTP Active Learning -- Analyze Extrapolation Level (Gamma)")
+
+    mode = _ask_mode()
 
     checkpoint_path = _ask_checkpoint_path()
     if not checkpoint_path:
@@ -245,6 +286,7 @@ def analyze_gamma():
 
     device = _get_device()
     print_section(f"Running on {device.upper()}")
+    print_kv("Mode", _MODE_LABELS[mode])
     print_kv("Checkpoint", checkpoint_path)
     print_kv("Maxvol Matrix Inv", maxvol_inv_path)
     print_kv("Explore Set", explore_path)
@@ -275,57 +317,77 @@ def analyze_gamma():
         # move the module explicitly so the Jacobian runs on `device`.
         generator.lit_module.to(torch.device(device))
         generator.lit_module.eval()
-        if not hasattr(generator, "get_gamma_local"):
-            print_error(
-                "LinearMtpMaxvolGenerator.get_gamma_local() is not available; "
-                "please update AI2Pot to a version that provides it."
+        if mode == "local":
+            if not hasattr(generator, "get_gamma_local"):
+                print_error(
+                    "LinearMtpMaxvolGenerator.get_gamma_local() is not available; "
+                    "please update AI2Pot to a version that provides it."
+                )
+                return
+            print_success("Computing gamma ...")
+            structure_ids, atom_ids, gamma_structures, gamma_atoms = generator.get_gamma_local(
+                maxvol_matrix_inv=maxvol_matrix_inv,
+                explore_path=explore_path,
             )
-            return
-
-        print_success("Computing gamma ...")
-        structure_ids, atom_ids, gamma_structures, gamma_atoms = generator.get_gamma_local(
-            maxvol_matrix_inv=maxvol_matrix_inv,
-            explore_path=explore_path,
-        )
-        structure_ids = structure_ids.cpu()
-        atom_ids = atom_ids.cpu()
-        gamma_structures = gamma_structures.cpu()
-        gamma_atoms = gamma_atoms.cpu()
-        num_atoms_per_structure = torch.bincount(
-            structure_ids, minlength=gamma_structures.numel()
-        )
+            structure_ids = structure_ids.cpu()
+            atom_ids = atom_ids.cpu()
+            gamma_structures = gamma_structures.cpu()
+            gamma_atoms = gamma_atoms.cpu()
+            num_atoms_per_structure = torch.bincount(
+                structure_ids, minlength=gamma_structures.numel()
+            )
+        else:
+            if not hasattr(generator, "get_gamma_global"):
+                print_error(
+                    "LinearMtpMaxvolGenerator.get_gamma_global() is not available; "
+                    "please update AI2Pot to a version that provides it."
+                )
+                return
+            print_success("Computing gamma ...")
+            structure_ids, gamma_structures = generator.get_gamma_global(
+                maxvol_matrix_inv=maxvol_matrix_inv,
+                explore_path=explore_path,
+            )
+            structure_ids = structure_ids.cpu()
+            gamma_structures = gamma_structures.cpu()
+            atom_ids = None
+            gamma_atoms = None
+            num_atoms_per_structure = None
     except Exception as exc:
         print_error(str(exc))
         return
 
     gamma_structure_path = os.path.join(output_dir, "gamma_structure.pt")
-    gamma_atoms_path = os.path.join(output_dir, "gamma_atoms.pt")
     histogram_path = os.path.join(output_dir, "gamma_histogram.png")
 
     metadata = {
+        "mode": mode,
         "checkpoint_path": checkpoint_path,
         "maxvol_inv_path": maxvol_inv_path,
         "explore_path": explore_path,
         "pbc_xyz": pbc_xyz,
     }
-    torch.save(
-        {
-            "gamma_structures": gamma_structures,
-            "num_atoms_per_structure": num_atoms_per_structure,
-            **metadata,
-        },
-        gamma_structure_path,
-    )
-    torch.save(
-        {
-            "gamma_atoms": gamma_atoms,
-            "structure_ids": structure_ids,
-            "atom_ids": atom_ids,
-            "num_atoms_per_structure": num_atoms_per_structure,
-            **metadata,
-        },
-        gamma_atoms_path,
-    )
+    gamma_structure_payload = {
+        "gamma_structures": gamma_structures,
+        **metadata,
+    }
+    if mode == "local":
+        gamma_structure_payload["num_atoms_per_structure"] = num_atoms_per_structure
+    torch.save(gamma_structure_payload, gamma_structure_path)
+
+    gamma_atoms_path = None
+    if mode == "local":
+        gamma_atoms_path = os.path.join(output_dir, "gamma_atoms.pt")
+        torch.save(
+            {
+                "gamma_atoms": gamma_atoms,
+                "structure_ids": structure_ids,
+                "atom_ids": atom_ids,
+                "num_atoms_per_structure": num_atoms_per_structure,
+                **metadata,
+            },
+            gamma_atoms_path,
+        )
 
     try:
         _plot_gamma_histogram(gamma_structures, gamma_atoms, histogram_path)
@@ -334,17 +396,21 @@ def analyze_gamma():
         return
 
     print_section("Gamma Analysis Generated Successfully")
+    print_kv("Mode", _MODE_LABELS[mode])
     print_kv("Output Dir", os.path.abspath(output_dir))
     print_kv("Structure Gamma", os.path.abspath(gamma_structure_path))
-    print_kv("Atom Gamma", os.path.abspath(gamma_atoms_path))
+    if gamma_atoms_path is not None:
+        print_kv("Atom Gamma", os.path.abspath(gamma_atoms_path))
     print_kv("Histogram", os.path.abspath(histogram_path))
     print()
     print(f"  {'Structures':<22}: {gamma_structures.numel()}")
-    print(f"  {'Atoms':<22}: {gamma_atoms.numel()}")
+    if gamma_atoms is not None:
+        print(f"  {'Atoms':<22}: {gamma_atoms.numel()}")
     print(f"  {'Max Gamma (Structure)':<22}: {gamma_structures.max().item():.4f}")
     print(f"  {'Mean Gamma (Structure)':<22}: {gamma_structures.mean().item():.4f}")
-    print(f"  {'Max Gamma (Atom)':<22}: {gamma_atoms.max().item():.4f}")
-    print(f"  {'Mean Gamma (Atom)':<22}: {gamma_atoms.mean().item():.4f}")
+    if gamma_atoms is not None:
+        print(f"  {'Max Gamma (Atom)':<22}: {gamma_atoms.max().item():.4f}")
+        print(f"  {'Mean Gamma (Atom)':<22}: {gamma_atoms.mean().item():.4f}")
     print_sep()
     print()
 
@@ -370,15 +436,12 @@ def _plot_gamma_histogram(gamma_structures, gamma_atoms, output_path: str):
         "savefig.bbox": "tight",
     })
 
-    structure_values = gamma_structures.detach().cpu().numpy()
-    atom_values = gamma_atoms.detach().cpu().numpy()
+    panels = [(gamma_structures.detach().cpu().numpy(), "Structure Gamma", "#4477AA")]
+    if gamma_atoms is not None:
+        panels.append((gamma_atoms.detach().cpu().numpy(), "Atom Gamma", "#d73027"))
 
-    fig, axes = plt.subplots(1, 2, figsize=(13.0, 5.8))
-    panels = (
-        (axes[0], structure_values, "Structure Gamma", "#4477AA"),
-        (axes[1], atom_values, "Atom Gamma", "#d73027"),
-    )
-    for ax, values, title, color in panels:
+    fig, axes = plt.subplots(1, len(panels), figsize=(6.5 * len(panels), 5.8), squeeze=False)
+    for ax, (values, title, color) in zip(axes[0], panels):
         counts, _, _ = ax.hist(values, bins=50, color=color, alpha=0.85, edgecolor="none")
         # Rare high-gamma bins are only a few counts per bin; a log y-axis keeps
         # them visible instead of flattening them to invisible slivers.
