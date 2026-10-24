@@ -230,6 +230,9 @@ def run_train(config_path: str) -> None:
         sort=dataset_cfg.get("sort", False),
         torch_float_dtype=dtype,
         has_virial=fit_virial,
+        # Dataset must map atomic numbers with the model's type ordering;
+        # a custom type_map list is used verbatim (not re-sorted).
+        type_map=type_map,
     )
 
     # --- Detect resume & build logger ---
