@@ -1,8 +1,7 @@
 """Generate nnmtp_train.jsonc from the built-in template."""
 import os
-import shutil
 
-from ai2pot_cli.menu import show_generation_success
+from ai2pot_cli.menus.potential_train.train_input_common import generate_training_input
 
 _TEMPLATE_PATH = os.path.join(
     os.path.dirname(__file__), "..", "..", "templates", "nnmtp_train.jsonc"
@@ -10,11 +9,5 @@ _TEMPLATE_PATH = os.path.join(
 
 
 def generate_nnmtp_input(output_path: str = "nnmtp_train.jsonc"):
-    """Copy the NNMTP training template (with comments) to *output_path*."""
-    shutil.copy(_TEMPLATE_PATH, output_path)
-    abs_path = os.path.abspath(output_path)
-    show_generation_success(
-        title="NNMTP Training Input Generated Successfully",
-        output_path=abs_path,
-        next_command=f"ai2pot-cli train --input {abs_path}",
-    )
+    """Write the NNMTP training template to *output_path* with the chosen duration mode."""
+    generate_training_input(_TEMPLATE_PATH, output_path, "NNMTP")
