@@ -65,8 +65,8 @@ The following menu will be shown:
  33)  Plot Descriptor Projection     34)  Export TorchScript Model
  35)  Plot ZBL                       36)  Plot EOS
  =============================== MD Utilities ===============================
- 91)  Doctor                         92)  Show Examples
- 93)  Print Version                  94)  LAMMPS Runtime Fix
+ 91)  LAMMPS Runtime Fix             92)  Show Examples
+ 93)  Print Version
   0)  Quit
  ------------>> 
 ```

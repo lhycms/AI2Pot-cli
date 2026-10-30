@@ -47,10 +47,9 @@ MAIN_SECTIONS = [
         (36, "Plot EOS"),
     ]),
     ("MD Utilities", [
-        (91, "Doctor"),
+        (91, "LAMMPS Runtime Fix"),
         (92, "Show Examples"),
         (93, "Print Version"),
-        (94, "LAMMPS Runtime Fix"),
     ]),
 ]
 
@@ -225,14 +224,12 @@ def _interactive_loop():
 
         # --- MD Utilities ---
         elif choice == 91:
-            print(" -> Doctor (not yet implemented)\n")
+            from ai2pot_cli.menus.md_utilities.lammps_runtime_fix import lammps_runtime_fix
+            lammps_runtime_fix()
         elif choice == 92:
             print(" -> Show Examples (not yet implemented)\n")
         elif choice == 93:
             print(f" AI2Pot-CLI  Version: {VERSION}\n")
-        elif choice == 94:
-            from ai2pot_cli.menus.md_utilities.lammps_runtime_fix import lammps_runtime_fix
-            lammps_runtime_fix()
 
         else:
             print_warning(f"Invalid option: {choice}")
