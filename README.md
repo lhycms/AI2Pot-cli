@@ -66,7 +66,7 @@ The following menu will be shown:
  35)  Plot ZBL                       36)  Plot EOS
  =============================== MD Utilities ===============================
  91)  Doctor                         92)  Show Examples
- 93)  Print Version
+ 93)  Print Version                  94)  LAMMPS Runtime Fix
   0)  Quit
  ------------>> 
 ```
