@@ -64,6 +64,7 @@ The following menu will be shown:
  31)  Plot E/F/V Parity              32)  Plot Learning Curve
  33)  Plot Descriptor Projection     34)  Export TorchScript Model
  35)  Plot ZBL                       36)  Plot EOS
+ 37)  Predict E/F/V to NPY
  =============================== MD Utilities ===============================
  91)  LAMMPS Runtime Fix             92)  Show Examples
  93)  Print Version

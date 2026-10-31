@@ -45,6 +45,7 @@ MAIN_SECTIONS = [
         (34, "Export TorchScript Model"),
         (35, "Plot ZBL"),
         (36, "Plot EOS"),
+        (37, "Predict E/F/V to NPY"),
     ]),
     ("MD Utilities", [
         (91, "LAMMPS Runtime Fix"),
@@ -217,6 +218,24 @@ def _interactive_loop():
             try:
                 plot_eos(checkpoint_path, structure_path,
                          scale_range=scale_range or None, n_points=n_points)
+            except ValueError as exc:
+                print_error(str(exc))
+                continue
+            sys.exit(0)
+        elif choice == 37:
+            checkpoint_path = _ask_checkpoint_path()
+            if checkpoint_path is None:
+                continue
+            xyz_path = input(" Dataset path (.xyz): ").strip()
+            if not xyz_path:
+                print_warning("No file path provided.")
+                continue
+            if not os.path.isfile(xyz_path):
+                print_error(f"File not found: {xyz_path}")
+                continue
+            from ai2pot_cli.menus.postprocessing.predict_efv import predict_efv
+            try:
+                predict_efv(checkpoint_path, xyz_path)
             except ValueError as exc:
                 print_error(str(exc))
                 continue
