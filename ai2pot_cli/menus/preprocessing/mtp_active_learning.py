@@ -463,14 +463,6 @@ def analyze_gamma():
     if gamma_atoms is not None:
         print(f"  {'Max Gamma (Atom)':<22}: {gamma_atoms.max().item():.4f}")
         print(f"  {'Mean Gamma (Atom)':<22}: {gamma_atoms.mean().item():.4f}")
-    if difference_data is not None and "force_diff" in difference_data:
-        force_diff = difference_data["force_diff"]
-        print(f"  {'Max Force Diff':<22}: {force_diff.max():.4f} eV/A")
-        print(f"  {'Mean Force Diff':<22}: {force_diff.mean():.4f} eV/A")
-    if difference_data is not None and "energy_diff" in difference_data:
-        energy_diff = difference_data["energy_diff"]
-        print(f"  {'Max Energy Diff':<22}: {energy_diff.max():.2f} meV/atom")
-        print(f"  {'Mean Energy Diff':<22}: {energy_diff.mean():.2f} meV/atom")
     print_sep()
     print()
 
@@ -724,8 +716,8 @@ def _save_ef_npy(difference_data, output_dir: str):
 _GRADE_STYLES = [
     ("Interpolation", 0.0, 1.0, "#0072B2"),
     ("Low", 1.0, 2.0, "#E69F00"),
-    ("High", 2.0, 4.0, "#D55E00"),
-    ("Severe", 4.0, float("inf"), "#CC79A7"),
+    ("High", 2.0, 10.0, "#D55E00"),
+    ("Severe", 10.0, float("inf"), "#CC79A7"),
 ]
 
 
@@ -753,7 +745,7 @@ def _draw_gamma_vs_difference(ax, panel):
         right = min(upper, xright)
         if right > left:
             ax.axvspan(left, right, color=color, alpha=0.07, zorder=0)
-    for bound in (1.0, 2.0, 4.0):
+    for bound in (1.0, 2.0, 10.0):
         if bound < xright:
             ax.axvline(bound, color="0.25", linestyle="--", linewidth=1.2, zorder=1)
 
@@ -801,23 +793,8 @@ def _draw_gamma_vs_difference(ax, panel):
                markeredgewidth=0.5, markersize=9)
         for i in present_grades
     ]
-    labels = [
-        f"{_GRADE_STYLES[i][0]} ({int(np.count_nonzero(grade_indices == i)):,})"
-        for i in present_grades
-    ]
+    labels = [_GRADE_STYLES[i][0] for i in present_grades]
     ax.legend(handles, labels, loc="lower right", framealpha=0.85)
-
-    stats = (
-        f"n = {difference.size:,}\n"
-        f"mean = {difference.mean():.3g}\n"
-        f"max = {difference.max():.3g}"
-    )
-    ax.text(
-        0.97, 0.95, stats,
-        transform=ax.transAxes, ha="right", va="top",
-        fontsize=14,
-        bbox=dict(boxstyle="round", facecolor="white", edgecolor="0.8", alpha=0.9),
-    )
 
 
 def _plot_gamma_scatter(panels, output_path: str):
