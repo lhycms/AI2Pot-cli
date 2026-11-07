@@ -357,6 +357,31 @@ def analyze_gamma():
         print_error(str(exc))
         return
 
+    difference_data = None
+    difference_skip_reason = None
+    try:
+        difference_data = _compute_difference_data(
+            checkpoint_path,
+            explore_path,
+            device,
+            mode,
+            structure_ids=structure_ids,
+            gamma_structures=gamma_structures,
+            atom_ids=atom_ids,
+            gamma_atoms=gamma_atoms,
+        )
+        if difference_data is None:
+            difference_skip_reason = "skipped (no labels in explore set)"
+    except Exception as exc:
+        print_error(f"Failed to analyze prediction differences: {exc}")
+        difference_skip_reason = "skipped (analysis failed)"
+
+    if difference_data is not None:
+        try:
+            _save_ef_npy(difference_data, output_dir)
+        except Exception as exc:
+            print_error(f"Failed to save E/F predictions: {exc}")
+
     gamma_structure_path = os.path.join(output_dir, "gamma_structure.pt")
     histogram_path = os.path.join(output_dir, "gamma_histogram.png")
 
@@ -395,6 +420,31 @@ def analyze_gamma():
         print_error(f"Failed to plot gamma histogram: {exc}")
         return
 
+    try:
+        if difference_data is not None:
+            panels = []
+            if mode == "local" and "force_gamma" in difference_data:
+                panels.append({
+                    "gamma": difference_data["force_gamma"],
+                    "difference": difference_data["force_diff"],
+                    "xlabel": "Atom Gamma",
+                    "ylabel": "|F_ML - F_DFT| (eV/A)",
+                    "title": "Atom Gamma vs. Force Difference",
+                })
+            if "energy_gamma" in difference_data:
+                panels.append({
+                    "gamma": difference_data["energy_gamma"],
+                    "difference": difference_data["energy_diff"],
+                    "xlabel": "Structure Gamma",
+                    "ylabel": "|E_ML - E_DFT| (meV/atom)",
+                    "title": "Structure Gamma vs. Energy Difference",
+                })
+            if panels:
+                _plot_gamma_scatter(panels, os.path.join(output_dir, "gamma_scatter.png"))
+    except Exception as exc:
+        print_error(f"Failed to plot gamma difference figures: {exc}")
+        return
+
     print_section("Gamma Analysis Generated Successfully")
     print_kv("Mode", _MODE_LABELS[mode])
     print_kv("Output Dir", os.path.abspath(output_dir))
@@ -402,6 +452,8 @@ def analyze_gamma():
     if gamma_atoms_path is not None:
         print_kv("Atom Gamma", os.path.abspath(gamma_atoms_path))
     print_kv("Histogram", os.path.abspath(histogram_path))
+    if difference_data is None:
+        print_kv("Error Plots", difference_skip_reason or "skipped")
     print()
     print(f"  {'Structures':<22}: {gamma_structures.numel()}")
     if gamma_atoms is not None:
@@ -411,6 +463,14 @@ def analyze_gamma():
     if gamma_atoms is not None:
         print(f"  {'Max Gamma (Atom)':<22}: {gamma_atoms.max().item():.4f}")
         print(f"  {'Mean Gamma (Atom)':<22}: {gamma_atoms.mean().item():.4f}")
+    if difference_data is not None and "force_diff" in difference_data:
+        force_diff = difference_data["force_diff"]
+        print(f"  {'Max Force Diff':<22}: {force_diff.max():.4f} eV/A")
+        print(f"  {'Mean Force Diff':<22}: {force_diff.mean():.4f} eV/A")
+    if difference_data is not None and "energy_diff" in difference_data:
+        energy_diff = difference_data["energy_diff"]
+        print(f"  {'Max Energy Diff':<22}: {energy_diff.max():.2f} meV/atom")
+        print(f"  {'Mean Energy Diff':<22}: {energy_diff.mean():.2f} meV/atom")
     print_sep()
     print()
 
@@ -472,6 +532,316 @@ def _plot_gamma_histogram(gamma_structures, gamma_atoms, output_path: str):
         ax.set_xlabel("Gamma")
         ax.set_ylabel("Count (log scale)")
         ax.set_title(title)
+
+    fig.tight_layout()
+    fig.savefig(output_path)
+    plt.close(fig)
+
+
+def _collect_reference_labels(atoms_list):
+    """Read per-structure energies and per-atom forces from the explore ASE atoms."""
+    import numpy as np
+
+    num_structures = len(atoms_list)
+    energies = np.full(num_structures, np.nan)
+    has_energy = np.zeros(num_structures, dtype=bool)
+    force_chunks = []
+    has_force_chunks = []
+
+    for index, atoms in enumerate(atoms_list):
+        results = atoms.calc.results if atoms.calc is not None else {}
+        if "energy" in results:
+            energies[index] = float(results["energy"])
+            has_energy[index] = True
+        elif "free_energy" in results:
+            energies[index] = float(results["free_energy"])
+            has_energy[index] = True
+
+        num_atoms = len(atoms)
+        if "forces" in results:
+            force_chunks.append(np.asarray(results["forces"], dtype=float).reshape(num_atoms, 3))
+            has_force_chunks.append(np.ones(num_atoms, dtype=bool))
+        else:
+            force_chunks.append(np.zeros((num_atoms, 3), dtype=float))
+            has_force_chunks.append(np.zeros(num_atoms, dtype=bool))
+
+    forces = np.concatenate(force_chunks, axis=0) if force_chunks else np.zeros((0, 3))
+    has_force = np.concatenate(has_force_chunks) if has_force_chunks else np.zeros(0, dtype=bool)
+    return energies, has_energy, forces, has_force
+
+
+def _build_ef_model(checkpoint_path: str, dataset_path: str, device: str):
+    model_type = _detect_model_type(checkpoint_path)
+    if model_type == "mtp":
+        from ai2pot.models.mtp.linear_mtp_utils import LinearMtp4Extxyz
+        return LinearMtp4Extxyz(checkpoint_path=checkpoint_path, testset_path=dataset_path, map_location=device)
+    if model_type == "nnmtp":
+        from ai2pot.models.mtp.nn_mtp_utils import NNMtp4Extxyz
+        return NNMtp4Extxyz(checkpoint_path=checkpoint_path, testset_path=dataset_path, map_location=device)
+    from ai2pot.models.nep.nep_utils import Nep4Extxyz
+    return Nep4Extxyz(checkpoint_path=checkpoint_path, testset_path=dataset_path, map_location=device)
+
+
+def _predict_ef_per_atom(ef_model):
+    """Predict per-atom energy (eV/atom) and per-atom forces (eV/A) for the explore set."""
+    import numpy as np
+    import torch
+
+    device = ef_model.lit_module.device
+    model = ef_model.model
+    energy_list = []
+    force_list = []
+
+    with torch.no_grad():
+        for batch_data in ef_model.test_dataloader:
+            binum_tensor, bilist_tensor, bnumneigh_tensor, bfirstneigh_tensor, \
+                brcs_tensor, btypes_tensor, bnghost_tensor = \
+                [t.to(device) for t in batch_data[:7]]
+
+            if ef_model.fit_virial:
+                betot_ml_tensor, bforce_ml_tensor, _ = model.predict_efv(
+                    binum_tensor,
+                    bilist_tensor,
+                    bnumneigh_tensor,
+                    bfirstneigh_tensor,
+                    brcs_tensor,
+                    btypes_tensor,
+                    bnghost_tensor,
+                )
+            else:
+                betot_ml_tensor, bforce_ml_tensor = model.predict_ef(
+                    binum_tensor,
+                    bilist_tensor,
+                    bnumneigh_tensor,
+                    bfirstneigh_tensor,
+                    brcs_tensor,
+                    btypes_tensor,
+                    bnghost_tensor,
+                )
+
+            mask_for_force = torch.arange(
+                bilist_tensor.size(1), device=device
+            )[None, :] < binum_tensor[:, None]
+            energy_list.append((betot_ml_tensor / binum_tensor).detach().cpu().numpy())
+            force_list.append(bforce_ml_tensor[mask_for_force].detach().cpu().numpy())
+
+    energies = np.concatenate(energy_list, axis=0) if energy_list else np.zeros(0)
+    forces = np.concatenate(force_list, axis=0) if force_list else np.zeros((0, 3))
+    return energies, forces
+
+
+def _compute_difference_data(
+    checkpoint_path: str,
+    explore_path: str,
+    device: str,
+    mode: str,
+    structure_ids,
+    gamma_structures,
+    atom_ids,
+    gamma_atoms,
+):
+    """Build gamma-vs-error series; returns None when the explore set has no labels."""
+    import numpy as np
+    from ase.io import read as ase_read
+
+    first_atoms = ase_read(explore_path, index=0)
+    first_results = first_atoms.calc.results if first_atoms.calc is not None else {}
+    has_labels = any(key in first_results for key in ("energy", "free_energy", "forces"))
+    if not has_labels:
+        return None
+
+    ef_model = _build_ef_model(checkpoint_path, explore_path, device)
+    ef_model.lit_module.eval()
+
+    atoms_list = ef_model.test_dataloader.dataset.atoms_list
+    num_structures = len(atoms_list)
+    num_atoms = np.array([len(atoms) for atoms in atoms_list], dtype=int)
+    e_dft, has_energy, f_dft, has_force = _collect_reference_labels(atoms_list)
+    needs_force = mode == "local" and bool(has_force.any())
+    if not bool(has_energy.any()) and not needs_force:
+        return None
+
+    e_ml, f_ml = _predict_ef_per_atom(ef_model)
+    if e_ml.size != num_structures:
+        raise ValueError(
+            f"Predicted {e_ml.size} energies for {num_structures} structures."
+        )
+    e_dft_per_atom = e_dft / num_atoms
+
+    # get_gamma_* returns gamma_structures in candidate-set order (the dataloader
+    # does not shuffle); in local mode structure_ids is per atom, not per structure.
+    gamma_structure_array = gamma_structures.detach().cpu().numpy()
+    if gamma_structure_array.size != num_structures:
+        raise ValueError(
+            f"Got {gamma_structure_array.size} structure gammas "
+            f"for {num_structures} structures."
+        )
+
+    data = {}
+    if has_energy.any():
+        data["energy_pred"] = e_ml
+        data["energy_dft"] = e_dft_per_atom
+        energy_mask = has_energy & np.isfinite(gamma_structure_array)
+        if energy_mask.any():
+            data["energy_gamma"] = gamma_structure_array[energy_mask]
+            data["energy_diff"] = np.abs(e_ml - e_dft_per_atom)[energy_mask] * 1000.0
+
+    if has_force.any():
+        data["force_pred"] = f_ml
+        data["force_dft"] = f_dft
+
+    if needs_force:
+        starts = np.r_[0, np.cumsum(num_atoms)[:-1]].astype(int)
+        total_atoms = int(num_atoms.sum())
+        if f_ml.shape[0] != total_atoms or f_dft.shape[0] != total_atoms:
+            raise ValueError(
+                f"Force count mismatch: predicted {f_ml.shape[0]}, "
+                f"reference {f_dft.shape[0]}, atoms {total_atoms}."
+            )
+        structure_id_array = structure_ids.detach().cpu().numpy().astype(int)
+        atom_id_array = atom_ids.detach().cpu().numpy().astype(int)
+        gamma_atom_array = np.full(total_atoms, np.nan)
+        gamma_atom_array[starts[structure_id_array] + atom_id_array] = \
+            gamma_atoms.detach().cpu().numpy()
+        force_mask = has_force & np.isfinite(gamma_atom_array)
+        if force_mask.any():
+            data["force_gamma"] = gamma_atom_array[force_mask]
+            data["force_diff"] = np.linalg.norm(f_ml - f_dft, axis=1)[force_mask]
+
+    return data or None
+
+
+def _save_ef_npy(difference_data, output_dir: str):
+    """Save per-atom E/F predictions and labels in the parity-plot naming scheme."""
+    import numpy as np
+
+    prefix = "explore_"
+    for key in ("energy_dft", "energy_pred", "force_dft", "force_pred"):
+        if key in difference_data:
+            np.save(os.path.join(output_dir, f"{prefix}{key}.npy"), difference_data[key])
+
+
+_GRADE_STYLES = [
+    ("Interpolation", 0.0, 1.0, "#0072B2"),
+    ("Low", 1.0, 2.0, "#E69F00"),
+    ("High", 2.0, 4.0, "#D55E00"),
+    ("Severe", 4.0, float("inf"), "#CC79A7"),
+]
+
+
+def _grade_indices(gamma):
+    import numpy as np
+
+    indices = np.zeros(gamma.shape, dtype=int)
+    for index, (_, lower, upper, _) in enumerate(_GRADE_STYLES):
+        indices[(gamma >= lower) & (gamma < upper)] = index
+    return indices
+
+
+def _draw_gamma_vs_difference(ax, panel):
+    import numpy as np
+    from matplotlib.lines import Line2D
+
+    gamma = np.asarray(panel["gamma"], dtype=float)
+    difference = np.asarray(panel["difference"], dtype=float)
+    grade_indices = _grade_indices(gamma)
+
+    xright = max(float(gamma.max()) * 1.05, 1.0)
+
+    for index, (_, lower, upper, color) in enumerate(_GRADE_STYLES):
+        left = lower
+        right = min(upper, xright)
+        if right > left:
+            ax.axvspan(left, right, color=color, alpha=0.07, zorder=0)
+    for bound in (1.0, 2.0, 4.0):
+        if bound < xright:
+            ax.axvline(bound, color="0.25", linestyle="--", linewidth=1.2, zorder=1)
+
+    scatter_styles = [
+        dict(s=8, alpha=0.35),
+        dict(s=14, alpha=0.65),
+        dict(s=40, alpha=0.95),
+        dict(s=40, alpha=0.95),
+    ]
+    for index, (_, _, _, color) in enumerate(_GRADE_STYLES):
+        mask = grade_indices == index
+        if mask.any():
+            ax.scatter(gamma[mask], difference[mask], c=color,
+                       edgecolors="none", rasterized=True, zorder=2,
+                       **scatter_styles[index])
+
+    ax.set_xlim(0.0, xright)
+    ax.set_xlabel(panel["xlabel"])
+    ax.set_ylabel(panel["ylabel"])
+    ax.set_title(panel["title"])
+
+    use_log = difference.size > 0 and float(difference.min()) > 0.0
+    if use_log:
+        positive = difference[difference > 0.0]
+        lower = float(positive.min())
+        upper = float(positive.max())
+        if lower == upper:
+            lower *= 0.5
+            upper *= 2.0
+        ax.set_yscale("log")
+        ax.set_ylim(lower * 0.5, upper * 2.0)
+    else:
+        lower = float(difference.min())
+        upper = float(difference.max())
+        pad = 0.05 * (upper - lower if upper > lower else 1.0)
+        ax.set_ylim(max(0.0, lower - pad), upper + pad)
+    ax.grid(axis="both", which="major", linestyle="--", linewidth=0.8,
+            color="gray", alpha=0.6, zorder=0)
+
+    present_grades = [i for i in range(len(_GRADE_STYLES))
+                      if np.any(grade_indices == i)]
+    handles = [
+        Line2D([], [], linestyle="none", marker="o",
+               markerfacecolor=_GRADE_STYLES[i][3], markeredgecolor="black",
+               markeredgewidth=0.5, markersize=9)
+        for i in present_grades
+    ]
+    labels = [
+        f"{_GRADE_STYLES[i][0]} ({int(np.count_nonzero(grade_indices == i)):,})"
+        for i in present_grades
+    ]
+    ax.legend(handles, labels, loc="lower right", framealpha=0.85)
+
+    stats = (
+        f"n = {difference.size:,}\n"
+        f"mean = {difference.mean():.3g}\n"
+        f"max = {difference.max():.3g}"
+    )
+    ax.text(
+        0.97, 0.95, stats,
+        transform=ax.transAxes, ha="right", va="top",
+        fontsize=14,
+        bbox=dict(boxstyle="round", facecolor="white", edgecolor="0.8", alpha=0.9),
+    )
+
+
+def _plot_gamma_scatter(panels, output_path: str):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    plt.rcParams.update({
+        "font.size": 18,
+        "axes.labelsize": 20,
+        "axes.titlesize": 20,
+        "xtick.labelsize": 16,
+        "ytick.labelsize": 16,
+        "legend.fontsize": 16,
+        "figure.dpi": 300,
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+    })
+
+    fig, axes = plt.subplots(
+        1, len(panels), figsize=(6.5 * len(panels), 5.8), squeeze=False
+    )
+    for ax, panel in zip(axes[0], panels):
+        _draw_gamma_vs_difference(ax, panel)
 
     fig.tight_layout()
     fig.savefig(output_path)
