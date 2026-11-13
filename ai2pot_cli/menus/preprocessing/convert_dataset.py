@@ -12,6 +12,7 @@ register(114, "ai2pot_cli.menus.preprocessing.converters.siesta2xyz", "run_siest
 register(115, "ai2pot_cli.menus.preprocessing.converters.orca2xyz",   "run_orca2xyz")
 register(116, "ai2pot_cli.menus.preprocessing.converters.dp2xyz",     "run_dp2xyz")
 register(117, "ai2pot_cli.menus.preprocessing.converters.lammps2xyz", "run_lammps2xyz")
+register(118, "ai2pot_cli.menus.preprocessing.converters.xyz2cfg",    "run_xyz2cfg")
 
 _MENU_ITEMS = [
     (111, "VASP → extxyz",      "VASP results (vasprun.xml / OUTCAR / POSCAR, recursive scan) → extxyz"),
@@ -21,6 +22,7 @@ _MENU_ITEMS = [
     (115, "ORCA → extxyz",      "ORCA results (.engrad / output, recursive scan) → extxyz"),
     (116, "DeepMD → extxyz",    "DeepMD-kit (type.raw + set.*/npy) → extxyz"),
     (117, "LAMMPS → extxyz",    "LAMMPS trajectories (*.lammpstrj / *.dump, recursive scan) → extxyz"),
+    (118, "extxyz → mlip-3 cfg", "extxyz (energy / forces / virial, recursive scan) → mlip-3 cfg"),
 ]
 
 
@@ -55,6 +57,9 @@ def convert_dataset_menu():
         elif choice == 117:
             from ai2pot_cli.menus.preprocessing.converters.lammps2xyz import run_lammps2xyz
             run_lammps2xyz()
+        elif choice == 118:
+            from ai2pot_cli.menus.preprocessing.converters.xyz2cfg import run_xyz2cfg
+            run_xyz2cfg()
         elif choice == 9:
             return
         elif choice == 0:
