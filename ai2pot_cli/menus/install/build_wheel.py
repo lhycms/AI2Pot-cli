@@ -29,10 +29,6 @@ BUILD_DEPS = {
     "numpy": ("numpy", "2.2.6"),
 }
 
-# 系统默认 g++ 过旧时会导致链接错误，默认使用 GCC 11.3
-DEFAULT_CC = "/data/app/gcc/11.3.0/bin/gcc"
-DEFAULT_CXX = "/data/app/gcc/11.3.0/bin/g++"
-
 
 class BuildWheelError(Exception):
     """Raised when the wheel build cannot proceed."""
@@ -263,7 +259,8 @@ def build_command(
 
 
 def _ask(label: str, default: str) -> str:
-    return input(f"  {label:<18} [{default}]: ").strip() or default
+    shown = default or "auto"
+    return input(f"  {label:<18} [{shown}]: ").strip() or default
 
 
 def _ask_source_dir() -> str:
@@ -447,8 +444,8 @@ def build_wheel_menu():
     mode = _ask_build_mode()
     arch = _ask("CUDA architectures", "auto")
     cuda_home = _ask("CUDA toolkit path", "auto")
-    cc = _ask("CC", DEFAULT_CC)
-    cxx = _ask("CXX", DEFAULT_CXX)
+    cc = _ask("CC", shutil.which("gcc") or "")
+    cxx = _ask("CXX", shutil.which("g++") or "")
     jobs = _ask_jobs()
     dist_root = _ask("Output root", "dist")
 
