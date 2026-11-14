@@ -21,7 +21,7 @@ DEFAULT_CHECKPOINT: str = "./lightning_logs/version_0/checkpoints/last.ckpt"
 
 MAIN_SECTIONS = [
     ("Installation", [
-        (1,  "Install AI2Pot"),
+        (1,  "Build AI2Pot Wheel"),
         (2,  "Install LAMMPS with AI2Pot"),
     ]),
     ("Preprocessing", [
@@ -84,8 +84,8 @@ def _interactive_loop():
         ### Sections
         # --- Installation ---
         elif choice == 1:
-            from ai2pot_cli.menus.install.router import install_ai2pot_menu
-            install_ai2pot_menu()
+            from ai2pot_cli.menus.install.build_wheel import build_wheel_menu
+            build_wheel_menu()
         elif choice == 2:
             from ai2pot_cli.menus.install.router import install_lammps_menu
             install_lammps_menu()

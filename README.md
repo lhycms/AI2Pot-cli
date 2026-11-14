@@ -52,7 +52,7 @@ The following menu will be shown:
  +--------------------------------------------------------------------------+
 
  =============================== Installation ===============================
-  1)  Install AI2Pot                  2)  Install LAMMPS with AI2Pot
+  1)  Build AI2Pot Wheel              2)  Install LAMMPS with AI2Pot
  ============================== Preprocessing ===============================
  11)  Convert Dataset                12)  Standardize ExtXYZ
  13)  Analyse Dataset                14)  MTP Active Learning
