@@ -29,6 +29,10 @@ BUILD_DEPS = {
     "numpy": ("numpy", "2.2.6"),
 }
 
+# 系统默认 g++ 过旧时会导致链接错误，默认使用 GCC 11.3
+DEFAULT_CC = "/data/app/gcc/11.3.0/bin/gcc"
+DEFAULT_CXX = "/data/app/gcc/11.3.0/bin/g++"
+
 
 class BuildWheelError(Exception):
     """Raised when the wheel build cannot proceed."""
@@ -237,7 +241,7 @@ def variant_label(torch, use_cuda: bool) -> str:
 
 
 def build_command(
-    source: Path, use_cuda: bool, archs: list[str], out_dir: Path, verbose: bool
+    source: Path, use_cuda: bool, archs: list[str], out_dir: Path
 ) -> list[str]:
     command = [
         sys.executable,
@@ -254,9 +258,7 @@ def build_command(
         command.append(
             "--config-settings=cmake.define.CUDA_ARCHITECTURES=" + ";".join(archs)
         )
-    command.extend(["-w", str(out_dir)])
-    if verbose:
-        command.append("-v")
+    command.extend(["-w", str(out_dir), "-v"])
     return command
 
 
@@ -309,30 +311,24 @@ def _ask_jobs() -> int | None:
         print_warning("Enter a positive integer, or 'auto' to let CMake decide.")
 
 
-def _ask_yes_no(label: str) -> bool:
-    while True:
-        value = _ask(label, "n").lower()
-        if value in ("y", "yes"):
-            return True
-        if value in ("n", "no"):
-            return False
-        print_warning("Enter y or n.")
-
-
 def build_wheel(
     source_dir: str,
     mode: str = "auto",
     arch: str = "auto",
     cuda_home_arg: str = "auto",
+    cc: str = "",
+    cxx: str = "",
     jobs: int | None = None,
     dist_root: str = "dist",
-    dry_run: bool = False,
-    verbose: bool = False,
-) -> Path | None:
-    """Build an AI2Pot wheel. Returns the wheel path, or None for a dry run."""
+) -> Path:
+    """Build an AI2Pot wheel. Returns the wheel path."""
     source = Path(source_dir).expanduser().resolve()
     if not _is_ai2pot_source(source):
         _fail(f"{source} 不是 AI2Pot 源码目录（需要 pyproject.toml 和 ai2pot/）。")
+    if cc.lower() == "auto":
+        cc = ""
+    if cxx.lower() == "auto":
+        cxx = ""
 
     check_python()
     check_build_deps()
@@ -395,9 +391,14 @@ def build_wheel(
     if not out_root.is_absolute():
         out_root = source / out_root
     out_dir = out_root.resolve() / variant_label(torch, use_cuda)
-    command = build_command(source, use_cuda, archs, out_dir, verbose)
+    command = build_command(source, use_cuda, archs, out_dir)
 
     environment = os.environ.copy()
+    if cc:
+        environment["CC"] = cc
+    if cxx:
+        environment["CXX"] = cxx
+        environment["CUDAHOSTCXX"] = cxx
     if use_cuda:
         environment["CUDA_HOME"] = str(cuda_home)
         environment["CUDACXX"] = str(cuda_home / "bin" / "nvcc")
@@ -416,15 +417,13 @@ def build_wheel(
     print_kv("Python", sys.version.split()[0])
     print_kv("ABI", f"_GLIBCXX_USE_CXX11_ABI={abi}")
     print_kv("Build mode", f"CUDA @ {cuda_home}" if use_cuda else "CPU")
+    print_kv("CC", cc or "auto")
+    print_kv("CXX", cxx or "auto")
     if use_cuda:
         print_kv("Arch source", arch_source)
         print_kv("Architectures", ";".join(archs))
     print_kv("Output", str(out_dir))
     print()
-
-    if dry_run:
-        print_kv("Command", " ".join(shlex.quote(part) for part in command))
-        return None
 
     out_dir.mkdir(parents=True, exist_ok=True)
     print_kv("Running", " ".join(shlex.quote(part) for part in command))
@@ -448,10 +447,10 @@ def build_wheel_menu():
     mode = _ask_build_mode()
     arch = _ask("CUDA architectures", "auto")
     cuda_home = _ask("CUDA toolkit path", "auto")
+    cc = _ask("CC", DEFAULT_CC)
+    cxx = _ask("CXX", DEFAULT_CXX)
     jobs = _ask_jobs()
     dist_root = _ask("Output root", "dist")
-    dry_run = _ask_yes_no("Dry run (y/n)")
-    verbose = _ask_yes_no("Verbose pip (y/n)")
 
     try:
         wheel = build_wheel(
@@ -459,25 +458,24 @@ def build_wheel_menu():
             mode=mode,
             arch=arch,
             cuda_home_arg=cuda_home,
+            cc=cc,
+            cxx=cxx,
             jobs=jobs,
             dist_root=dist_root,
-            dry_run=dry_run,
-            verbose=verbose,
         )
     except BuildWheelError as exc:
         print_error(str(exc))
         print()
         sys.exit(1)
 
-    print_section("Dry Run Finished" if dry_run else "AI2Pot Wheel Built Successfully")
-    if wheel is not None:
-        size_mib = wheel.stat().st_size / (1024 * 1024)
-        print_kv("Wheel", str(wheel))
-        print_kv("Size", f"{size_mib:.1f} MiB")
-        print_kv(
-            "Next step",
-            f"{sys.executable} -m pip install --force-reinstall {wheel}",
-        )
+    print_section("AI2Pot Wheel Built Successfully")
+    size_mib = wheel.stat().st_size / (1024 * 1024)
+    print_kv("Wheel", str(wheel))
+    print_kv("Size", f"{size_mib:.1f} MiB")
+    print_kv(
+        "Next step",
+        f"{sys.executable} -m pip install --force-reinstall {wheel}",
+    )
     print_sep()
     print()
     sys.exit(0)
