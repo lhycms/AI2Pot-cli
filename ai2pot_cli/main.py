@@ -14,7 +14,7 @@ from ai2pot_cli.menu import (
     print_error,
 )
 
-VERSION: str = "1.2.2"
+VERSION: str = "1.2.3"
 
 # Training runs write their checkpoints here (relative to the run's working directory)
 DEFAULT_CHECKPOINT: str = "./lightning_logs/version_0/checkpoints/last.ckpt"
